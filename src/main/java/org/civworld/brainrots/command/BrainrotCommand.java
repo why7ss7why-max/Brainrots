@@ -24,6 +24,9 @@ public class BrainrotCommand implements CommandExecutor {
 
         switch(args[0].toLowerCase()){
             case "create" -> brainrotManager.createBrainrot(sender, args);
+            case "delete" -> brainrotManager.deleteBrainrot(sender, args);
+            case "list" -> brainrotManager.listBrainrots(sender);
+            case "info" -> brainrotManager.infoBrainrots(sender, args);
 //            case "give" -> brainrotManager.giveBrainrot(sender, args);
             default -> helpMessage(sender);
         }
@@ -35,6 +38,13 @@ public class BrainrotCommand implements CommandExecutor {
     private void helpMessage(CommandSender sender){
         sender.sendMessage(parse("<prefix>Использование:"));
         sender.sendMessage(parse("<prefix><blue>/br create <айди> <редкость> <стоимость> <мод> <прибыль> <название> <gray>- <white>Создать <gray>нового <green>бреинрота"));
-        sender.sendMessage(parse("<prefix><blue>/br give <название> <модификатор> <gray>- <white>Выдать <gray>себе <green>бреинрота"));
+        sender.sendMessage(parse("<prefix><blue>/br delete <айди> <gray>- <white>Удалить <red>бреинрот"));
+        sender.sendMessage(parse("<prefix><blue>/br give <название> <модификатор> <gray>- <white>Выдать <gray>себе <blue>бреинрота"));
+        sender.sendMessage(parse("<prefix><blue>/br info <айди> <gray>- <white>Узнать <gray>информацию <white>о <yellow>бреинроте"));
+        sender.sendMessage(parse("<prefix><blue>/br list <gray>- <white>Посмотреть <gray>все <green>бреинроты"));
+        sender.sendMessage(parse("<prefix><blue>/br home create <gray>- <white>Создать <gray>новый <green>дом"));
+        sender.sendMessage(parse("<prefix><blue>/br home delete <gray>- <white>Удалить <red>дом"));
+        sender.sendMessage(parse("<prefix><blue>/br lobby create <айди> <gray>- <white>Создать <gray>новое <orange>лобби"));
+        sender.sendMessage(parse("<prefix><blue>/br lobby delete <айди> <gray>- <white>Удалить <red>лобби"));
     }
 }
