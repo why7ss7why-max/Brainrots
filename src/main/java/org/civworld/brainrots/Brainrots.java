@@ -1,4 +1,4 @@
-package org.darklands.brainrots;
+package org.civworld.brainrots;
 
 import org.bukkit.plugin.java.JavaPlugin;
 

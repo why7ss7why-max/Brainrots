@@ -1,6 +1,6 @@
 name: Brainrots
 version: '1.0-SNAPSHOT'
-main: org.darklands.brainrots.Brainrots
+main: org.civworld.brainrots.Brainrots
 api-version: '1.21'
 prefix: Brainrots
 authors: [ uuun ]
