@@ -3,7 +3,6 @@ package org.civworld.brainrots;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class Brainrots extends JavaPlugin {
-
     @Override
     public void onEnable() {
         // Plugin startup logic
