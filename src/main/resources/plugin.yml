@@ -1,0 +1,8 @@
+name: Brainrots
+version: '1.0-SNAPSHOT'
+main: org.darklands.brainrots.Brainrots
+api-version: '1.21'
+prefix: Brainrots
+authors: [ uuun ]
+description: Plugin for CivWorld - Brainrot Civilization
+website: https://dsc.gg/civworld
