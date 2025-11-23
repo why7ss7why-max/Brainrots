@@ -9,4 +9,4 @@ website: https://dsc.gg/civworld
 commands:
   brainrot:
     description: Main command for Brainrots Plugin
-    aliases: [br]
+    aliases: [bt]

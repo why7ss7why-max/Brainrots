@@ -3,13 +3,21 @@ package org.civworld.brainrots;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.civworld.brainrots.command.BrainrotCommand;
 import org.civworld.brainrots.manager.BrainrotManager;
+import org.civworld.brainrots.puller.Puller;
 import org.civworld.brainrots.repo.BrainrotRepo;
+import org.civworld.brainrots.repo.LobbyRepo;
 
 public final class Brainrots extends JavaPlugin {
+    private Puller puller = null;
+
     @Override
     public void onEnable() {
         BrainrotRepo brainrotRepo = new BrainrotRepo();
-        BrainrotManager brainrotManager = new BrainrotManager(brainrotRepo);
+        LobbyRepo lobbyRepo = new LobbyRepo();
+        BrainrotManager brainrotManager = new BrainrotManager(brainrotRepo, lobbyRepo, this);
+
+        puller = new Puller(this, brainrotRepo, lobbyRepo);
+        puller.startPoll();
 
         var command = getCommand("brainrot");
         if(command == null){
@@ -27,5 +35,6 @@ public final class Brainrots extends JavaPlugin {
     @Override
     public void onDisable() {
         getLogger().info("Plugin successfully disabled!");
+        puller.stopPull();
     }
 }

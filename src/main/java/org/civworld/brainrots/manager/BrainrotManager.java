@@ -1,8 +1,22 @@
 package org.civworld.brainrots.manager;
 
+import io.lumine.mythic.api.adapters.AbstractLocation;
+import io.lumine.mythic.bukkit.BukkitAdapter;
+import io.lumine.mythic.bukkit.MythicBukkit;
+import io.lumine.mythic.core.mobs.ActiveMob;
+import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.civworld.brainrots.model.BrainrotModel;
+import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.repo.BrainrotRepo;
+import org.civworld.brainrots.repo.LobbyRepo;
 import org.civworld.brainrots.type.Modificator;
 import org.civworld.brainrots.type.Rarity;
 
@@ -10,18 +24,22 @@ import static org.civworld.brainrots.util.Utils.parse;
 
 public class BrainrotManager {
     private final BrainrotRepo brainrotRepo;
+    private final LobbyRepo lobbyRepo;
+    private final Plugin plugin;
 
-    public BrainrotManager(BrainrotRepo brainrotRepo){
+    public BrainrotManager(BrainrotRepo brainrotRepo, LobbyRepo lobbyRepo, Plugin plugin){
         this.brainrotRepo = brainrotRepo;
+        this.lobbyRepo = lobbyRepo;
+        this.plugin = plugin;
     }
 
     public void createBrainrot(CommandSender sender, String[] args){
-        if(args.length < 7){
-            sender.sendMessage(parse("<prefix>Использование: <blue>/br create <айди> <редкость> <стоимость> <мод> <прибыль> <название>"));
+        if(args.length < 6){
+            sender.sendMessage(parse("<prefix>Использование: <blue>/bt create <айди> <редкость> <стоимость> <мод> <прибыль> <название>"));
             return;
         }
 
-        String id = args[1].toLowerCase();
+        String id = args[1];
         if(brainrotRepo.hasBrainrotById(id)){
             sender.sendMessage(parse("<prefix>Бреинрот с <gray>таким <blue>ID <white>уже <red>существует<white>!"));
             return;
@@ -85,7 +103,7 @@ public class BrainrotManager {
 
     public void deleteBrainrot(CommandSender sender, String[] args){
         if(args.length < 2){
-            sender.sendMessage(parse("<prefix>Использование: <blue>/br delete <айди>"));
+            sender.sendMessage(parse("<prefix>Использование: <blue>/bt delete <айди>"));
             return;
         }
 
@@ -139,5 +157,46 @@ public class BrainrotManager {
         sender.sendMessage(parse("<prefix>Стоимость: <yellow>" + brainrotModel.getCost() + "$"));
         sender.sendMessage(parse("<prefix>Модификатор: <yellow>" + brainrotModel.getModificator()));
         sender.sendMessage(parse("<prefix>Прибыль: <yellow>" + brainrotModel.getEarn() + "/с $"));
+    }
+
+    public void handleLobbyCommand(CommandSender sender, String[] args){
+        if(args.length < 2){
+            helpLobbyCommand(sender);
+            return;
+        }
+
+        switch(args[1].toLowerCase()){
+            case "create" -> {
+                if(!(sender instanceof Player player)){
+                    sender.sendMessage(parse("<prefix>Создать <gray>лобби <white>можно только <red>от игрока<white>!"));
+                    return;
+                }
+
+                if(args.length < 3){
+                    player.sendMessage(parse("<prefix>Использование: <blue>/bt lobby create <айди>"));
+                    return;
+                }
+
+                int id;
+                try{
+                    id = Integer.parseInt(args[2]);
+                } catch (NumberFormatException e) {
+                    player.sendMessage(parse("<prefix>Вы ввели <red>неверный <white>ID!"));
+                    return;
+                }
+
+                Location loc = player.getLocation();
+
+                lobbyRepo.addLobby(new Lobby(loc, id));
+            }
+            default -> helpLobbyCommand(sender);
+        }
+    }
+
+    public void helpLobbyCommand(CommandSender sender){
+        sender.sendMessage(parse("<prefix>Использование:"));
+        sender.sendMessage(parse("<prefix><blue>/bt lobby create <айди> <gray>- <white>Создать <gray>новое <blue>лобби"));
+        sender.sendMessage(parse("<prefix><blue>/bt lobby delete <айди> <gray>- <white>Удалить <red>лобби"));
+        sender.sendMessage(parse("<prefix><blue>/bt lobby list <gray>- <white>Список <red>лобби"));
     }
 }

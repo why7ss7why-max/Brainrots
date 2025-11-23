@@ -2,7 +2,7 @@ package org.civworld.brainrots.model;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.tools.ant.Location;
+import org.bukkit.Location;
 
 import java.util.HashSet;
 
