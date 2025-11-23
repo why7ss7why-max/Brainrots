@@ -11,4 +11,18 @@ public class LobbyRepo {
     public void addLobby(Lobby lobby){
         lobbies.add(lobby);
     }
+
+    public boolean hasByNumber(int id){
+        for(Lobby lobby : lobbies){
+            if(lobby.getNum() == id) return true;
+        }
+        return false;
+    }
+
+    public Lobby getByNumber(int id){
+        for(Lobby lobby : lobbies){
+            if(lobby.getNum() == id) return lobby;
+        }
+        return null;
+    }
 }

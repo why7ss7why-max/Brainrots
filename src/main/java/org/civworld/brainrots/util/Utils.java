@@ -56,7 +56,7 @@ public final class Utils {
             case LEGENDARY -> "&e";
             case MYTHIC -> "&#FF0000";
             case BRAINROT_GOD -> "&6";
-            case SECRET -> "&7";
+            case SECRET -> "&0";
             case LIMITED -> "&d";
         };
     }

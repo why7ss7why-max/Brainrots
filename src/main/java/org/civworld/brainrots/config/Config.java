@@ -1,6 +1,5 @@
 package org.civworld.brainrots.config;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -9,7 +8,6 @@ import org.civworld.brainrots.model.House;
 import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.repo.BrainrotRepo;
 import org.civworld.brainrots.repo.LobbyRepo;
-import org.civworld.brainrots.type.Modificator;
 import org.civworld.brainrots.type.Rarity;
 
 public final class Config {
@@ -33,10 +31,9 @@ public final class Config {
                 String displayName = config.getString(path + "displayName", key);
                 Rarity rarity = Rarity.valueOf(config.getString(path + "rarity", "COMMON"));
                 int cost = config.getInt(path + "cost", 0);
-                Modificator modificator = Modificator.valueOf(config.getString(path + "modificator", "BRONZE"));
                 int earn = config.getInt(path + "earn", 0);
 
-                BrainrotModel model = new BrainrotModel(key, displayName, rarity, cost, modificator, earn);
+                BrainrotModel model = new BrainrotModel(key, displayName, rarity, cost, earn);
                 model.setMarginHologram(config.getDouble(path + "marginBottom", 0));
                 model.setHeightHitbox(config.getDouble(path + "heightHitbox", 1.8));
                 model.setWidthHitbox(config.getDouble(path + "widthHitbox", 0.6));
@@ -87,8 +84,7 @@ public final class Config {
             config.set(path + "displayName" , brainrotModel.getDisplayName());
             config.set(path + "cost" , brainrotModel.getCost());
             config.set(path + "earn" , brainrotModel.getEarn());
-            config.set(path + "modificator" , brainrotModel.getModificator().name()); // <- только имя
-            config.set(path + "rarity" , brainrotModel.getRarity().name());          // <- только имя
+            config.set(path + "rarity" , brainrotModel.getRarity().name());
             config.set(path + "marginBottom" , brainrotModel.getMarginHologram());
             config.set(path + "heightHitbox" , brainrotModel.getHeightHitbox());
             config.set(path + "widthHitbox" , brainrotModel.getWidthHitbox());
@@ -104,7 +100,6 @@ public final class Config {
                 for(BrainrotModel brainrotModel : house.getBrainrots()){
                     String bPath = housePath + "brainrots." + brainrotModel.getId() + ".";
                     config.set(bPath + "cost", brainrotModel.getCost());
-                    config.set(bPath + "modificator", brainrotModel.getModificator().name()); // <- только имя
                     config.set(bPath + "earn", brainrotModel.getEarn());
                     config.set(bPath + "displayName", brainrotModel.getDisplayName());
                 }
@@ -112,6 +107,5 @@ public final class Config {
         }
 
         plugin.saveConfig();
-        Bukkit.getLogger().info("Config saved successfully!");
     }
 }

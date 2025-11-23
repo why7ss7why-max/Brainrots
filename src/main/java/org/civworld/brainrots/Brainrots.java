@@ -11,6 +11,7 @@ import org.civworld.brainrots.puller.Puller;
 import org.civworld.brainrots.repo.BrainrotRepo;
 import org.civworld.brainrots.repo.LobbyRepo;
 import net.milkbowl.vault.economy.Economy;
+import org.civworld.brainrots.tabcompleter.BrainrotTabCompleter;
 
 public final class Brainrots extends JavaPlugin {
     private Puller puller = null;
@@ -43,6 +44,7 @@ public final class Brainrots extends JavaPlugin {
             error("COMMAND WILL NOT WORK!!!");
         } else {
             command.setExecutor(new BrainrotCommand(brainrotManager));
+            command.setTabCompleter(new BrainrotTabCompleter(brainrotRepo, lobbyRepo));
             log("Command is successfully registered!");
         }
 

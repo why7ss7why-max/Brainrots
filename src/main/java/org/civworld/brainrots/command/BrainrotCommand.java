@@ -17,6 +17,11 @@ public class BrainrotCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
+        if(!sender.hasPermission("brainrots.admin")){
+            sender.sendMessage(parse("<prefix>Вы <red>не администратор<white>."));
+            return true;
+        }
+
         if(args.length < 1){
             helpMessage(sender);
             return true;
@@ -30,6 +35,7 @@ public class BrainrotCommand implements CommandExecutor {
             case "list" -> brainrotManager.listBrainrots(sender);
             case "info" -> brainrotManager.infoBrainrots(sender, args);
             case "lobby" -> brainrotManager.handleLobbyCommand(sender, args);
+            case "force" -> brainrotManager.force(sender, args);
 //            case "give" -> brainrotManager.giveBrainrot(sender, args);
             default -> helpMessage(sender);
         }
@@ -40,9 +46,10 @@ public class BrainrotCommand implements CommandExecutor {
 
     private void helpMessage(CommandSender sender){
         sender.sendMessage(parse("<prefix>Использование:"));
-        sender.sendMessage(parse("<prefix><blue>/bt create <айди> <редкость> <стоимость> <мод> <прибыль> <название> <gray>- <white>Создать <gray>нового <green>бреинрота"));
+        sender.sendMessage(parse("<prefix><blue>/bt create <айди> <редкость> <стоимость> <прибыль> <название> <gray>- <white>Создать <gray>нового <green>бреинрота"));
         sender.sendMessage(parse("<prefix><blue>/bt hitbox <айди> <ширина> <высота> <gray>- <white>Изменить <gray>хитбокс <green>бреинрота"));
         sender.sendMessage(parse("<prefix><blue>/bt marginbottom <айди> <высота> <gray>- <white>Изменить <gray>длину <white>голограммы <green>бреинрота"));
+        sender.sendMessage(parse("<prefix><blue>/bt force <айди> <модификатор> <лобби|all> <gray>- <white>Заспавнить <gray>принудительно <green>бреинрота"));
         sender.sendMessage(parse("<prefix><blue>/bt delete <айди> <gray>- <white>Удалить <red>бреинрот"));
         sender.sendMessage(parse("<prefix><blue>/bt give <название> <модификатор> <gray>- <white>Выдать <gray>себе <blue>бреинрота"));
         sender.sendMessage(parse("<prefix><blue>/bt info <айди> <gray>- <white>Узнать <gray>информацию <white>о <yellow>бреинроте"));

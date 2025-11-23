@@ -14,6 +14,8 @@ import org.civworld.brainrots.repo.LobbyRepo;
 import org.civworld.brainrots.type.Modificator;
 import org.civworld.brainrots.type.Rarity;
 
+import java.util.Arrays;
+
 import static org.civworld.brainrots.util.Utils.parse;
 
 public class BrainrotManager {
@@ -29,9 +31,61 @@ public class BrainrotManager {
         this.puller = puller;
     }
 
+    public void force(CommandSender sender, String[] args) {
+        if(args.length < 4){
+            sender.sendMessage(parse("<prefix>Использование: <blue>/bt force <айди> <модификатор> <лобби|all>"));
+            return;
+        }
+
+        String id = args[1];
+        if (!brainrotRepo.hasBrainrotById(id)) {
+            sender.sendMessage(parse("<prefix>Бреинрот <red>не найден<white>!"));
+            return;
+        }
+
+        BrainrotModel brainrotModel = brainrotRepo.getById(id);
+        if (brainrotModel == null) {
+            sender.sendMessage(parse("<prefix>Произошла <red>ошибка<white>. Свяжитесь с <green>администратором<white>!"));
+            return;
+        }
+
+        Modificator modificator;
+        try {
+            modificator = Modificator.valueOf(args[2].toUpperCase());
+        } catch (IllegalArgumentException e) {
+            sender.sendMessage(parse("<prefix>Вы <gray>ввели <red>неверный <white>модификатор!"));
+            StringBuilder stringBuilder = new StringBuilder();
+            for(Modificator m : Modificator.values()){
+                stringBuilder.append(m).append(" ");
+            }
+            sender.sendMessage(parse("<prefix>Доступные: <blue>" + stringBuilder));
+            return;
+        }
+        brainrotModel.setModificator(modificator);
+
+        if(!args[3].equals("all")){
+            int lobby;
+            try{
+                lobby = Integer.parseInt(args[3]);
+            } catch (NumberFormatException e) {
+                sender.sendMessage(parse("<prefix>Вы <red>не ввели <white>лобби!"));
+                return;
+            }
+
+            if(lobbyRepo.getByNumber(lobby) == null){
+                sender.sendMessage(parse("<prefix>Лобби <red>не найдено<white>!"));
+                return;
+            }
+
+            puller.forceNext(lobby, brainrotRepo.getById(id));
+        } else {
+            puller.forceNextAll(brainrotRepo.getById(id));
+        }
+    }
+
     public void createBrainrot(CommandSender sender, String[] args){
         if(args.length < 6){
-            sender.sendMessage(parse("<prefix>Использование: <blue>/bt create <айди> <редкость> <стоимость> <мод> <прибыль> <название>"));
+            sender.sendMessage(parse("<prefix>Использование: <blue>/bt create <айди> <редкость> <стоимость> <прибыль> <название>"));
             return;
         }
 
@@ -62,30 +116,17 @@ public class BrainrotManager {
             return;
         }
 
-        Modificator modificator;
-        try{
-            modificator = Modificator.valueOf(args[4].toUpperCase());
-        } catch (IllegalArgumentException e) {
-            sender.sendMessage(parse("<prefix>Вы <gray>ввели <red>неверный <white>модификатор!"));
-            StringBuilder stringBuilder = new StringBuilder();
-            for(Modificator m : Modificator.values()){
-                stringBuilder.append(m).append(" ");
-            }
-            sender.sendMessage(parse("<prefix>Доступные: <blue>" + stringBuilder));
-            return;
-        }
-
         int earn;
         try{
-            earn = Integer.parseInt(args[5]);
+            earn = Integer.parseInt(args[4]);
         } catch (NumberFormatException e) {
             sender.sendMessage(parse("<prefix>Вы <gray>ввели <red>неверную <white>прибыль!"));
             return;
         }
 
-        String name = String.join(" ", java.util.Arrays.copyOfRange(args, 6, args.length));
+        String name = String.join(" ", Arrays.copyOfRange(args, 5, args.length));
 
-        BrainrotModel brainrot = new BrainrotModel(id, name, rarity, cost, modificator, earn);
+        BrainrotModel brainrot = new BrainrotModel(id, name, rarity, cost, earn);
         brainrotRepo.addBrainrot(brainrot);
 
         sender.sendMessage(parse("<prefix>Вы <green>успешно <white>создали нового <blue>бреинрота<white>!"));
@@ -93,7 +134,6 @@ public class BrainrotManager {
         sender.sendMessage(parse("<prefix>Имя: <blue>" + name));
         sender.sendMessage(parse("<prefix>Редкость: <blue>" + rarity));
         sender.sendMessage(parse("<prefix>Стоимость: <blue>" + cost + "$"));
-        sender.sendMessage(parse("<prefix>Модификатор: <blue>" + modificator));
         sender.sendMessage(parse("<prefix>Прибыль: <blue>" + earn + "/с $"));
     }
 
@@ -181,10 +221,49 @@ public class BrainrotManager {
                     return;
                 }
 
+                if(lobbyRepo.hasByNumber(id)){
+                    player.sendMessage(parse("<prefix>Лобби с ID <blue>" + id + " <white>уже <red>существует<white>!"));
+                    return;
+                }
+
                 Location loc = player.getLocation();
 
                 lobbyRepo.addLobby(new Lobby(loc, id));
                 sender.sendMessage(parse("<prefix>Вы <green>успешно <white>создали <gray>новое <white>лобби!"));
+            }
+            case "delete" -> {
+                if(!(sender instanceof Player player)){
+                    sender.sendMessage(parse("<prefix>Создать <gray>лобби <white>можно только <red>от игрока<white>!"));
+                    return;
+                }
+
+                if(args.length < 3){
+                    player.sendMessage(parse("<prefix>Использование: <blue>/bt lobby delete <айди>"));
+                    return;
+                }
+
+                int id;
+                try{
+                    id = Integer.parseInt(args[2]);
+                } catch (NumberFormatException e) {
+                    player.sendMessage(parse("<prefix>Вы ввели <red>неверный <white>ID!"));
+                    return;
+                }
+
+                if(!lobbyRepo.hasByNumber(id)){
+                    player.sendMessage(parse("<prefix>Лобби <red>не найдено<white>!"));
+                    return;
+                }
+
+                Lobby lobby = lobbyRepo.getByNumber(id);
+                if(lobby == null){
+                    player.sendMessage(parse("<prefix>Произошла <red>ошибка<white>! Свяжитесь с <green>администратором<white>."));
+                    return;
+                }
+
+                lobbyRepo.getLobbies().remove(lobby);
+
+                sender.sendMessage(parse("<prefix>Вы <green>успешно <white>удалили <gray>лобби <white>с ID: <blue>" + id + "<white>!"));
             }
             default -> helpLobbyCommand(sender);
         }

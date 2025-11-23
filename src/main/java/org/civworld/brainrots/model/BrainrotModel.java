@@ -10,18 +10,17 @@ import org.civworld.brainrots.type.Rarity;
     private final String displayName;
     private final Rarity rarity;
     private final int cost;
-    private final Modificator modificator;
+    private Modificator modificator = Modificator.BRONZE;
     private final int earn;
     private double widthHitbox = 0.6;
     private double heightHitbox = 1.8;
     private double marginHologram = 0;
 
-    public BrainrotModel(String id, String displayName, Rarity rarity, int cost, Modificator modificator, int earn){
+    public BrainrotModel(String id, String displayName, Rarity rarity, int cost, int earn){
         this.id = id;
         this.displayName = displayName;
         this.rarity = rarity;
         this.cost = cost;
-        this.modificator = modificator;
         this.earn = earn;
     }
 }
