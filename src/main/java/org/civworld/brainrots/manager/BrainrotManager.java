@@ -1,20 +1,14 @@
 package org.civworld.brainrots.manager;
 
-import io.lumine.mythic.api.adapters.AbstractLocation;
-import io.lumine.mythic.bukkit.BukkitAdapter;
-import io.lumine.mythic.bukkit.MythicBukkit;
-import io.lumine.mythic.core.mobs.ActiveMob;
+import net.citizensnpcs.api.npc.NPC;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.civworld.brainrots.model.BrainrotModel;
 import org.civworld.brainrots.model.Lobby;
+import org.civworld.brainrots.puller.Puller;
 import org.civworld.brainrots.repo.BrainrotRepo;
 import org.civworld.brainrots.repo.LobbyRepo;
 import org.civworld.brainrots.type.Modificator;
@@ -26,11 +20,13 @@ public class BrainrotManager {
     private final BrainrotRepo brainrotRepo;
     private final LobbyRepo lobbyRepo;
     private final Plugin plugin;
+    private final Puller puller;
 
-    public BrainrotManager(BrainrotRepo brainrotRepo, LobbyRepo lobbyRepo, Plugin plugin){
+    public BrainrotManager(BrainrotRepo brainrotRepo, LobbyRepo lobbyRepo, Plugin plugin, Puller puller){
         this.brainrotRepo = brainrotRepo;
         this.lobbyRepo = lobbyRepo;
         this.plugin = plugin;
+        this.puller = puller;
     }
 
     public void createBrainrot(CommandSender sender, String[] args){
@@ -107,7 +103,7 @@ public class BrainrotManager {
             return;
         }
 
-        String id = args[1].toLowerCase();
+        String id = args[1];
         if(!brainrotRepo.hasBrainrotById(id)){
             sender.sendMessage(parse("<prefix>Такого <blue>бреинрота <white>не <red>существует<white>!"));
             return;
@@ -188,8 +184,105 @@ public class BrainrotManager {
                 Location loc = player.getLocation();
 
                 lobbyRepo.addLobby(new Lobby(loc, id));
+                sender.sendMessage(parse("<prefix>Вы <green>успешно <white>создали <gray>новое <white>лобби!"));
             }
             default -> helpLobbyCommand(sender);
+        }
+    }
+
+    public void hitboxBrainrot(CommandSender sender, String[] args){
+        if(args.length < 4){
+            sender.sendMessage(parse("<prefix>Использование: <blue>/bt hitbox <айди> <ширина> <высота>"));
+            return;
+        }
+
+        String id = args[1];
+        if(!brainrotRepo.hasBrainrotById(id)){
+            sender.sendMessage(parse("<prefix>Бреинрот <red>не найден<white>."));
+            sender.sendMessage(parse("<prefix>Используйте: <blue>/bt list <white>для <green>просмотра <white>списка <blue>бреинротов<white>."));
+            return;
+        }
+
+        double width;
+        try{
+            width = Double.parseDouble(args[2]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage(parse("<prefix>Вы ввели <red>неверную <white>ширину!"));
+            return;
+        }
+
+        double height;
+        try{
+            height = Double.parseDouble(args[3]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage(parse("<prefix>Вы ввели <red>неверную <white>высоту!"));
+            return;
+        }
+
+        BrainrotModel brainrotModel = brainrotRepo.getById(id);
+        if(brainrotModel == null){
+            sender.sendMessage(parse("<prefix>Произошла <red>ошибка <white>с получением <blue>бреинрота<white>."));
+            sender.sendMessage(parse("<prefix>Свяжитесь с <green>администратором<white>."));
+            return;
+        }
+
+        brainrotModel.setWidthHitbox(width);
+        brainrotModel.setHeightHitbox(height);
+        sender.sendMessage(parse("<prefix>Вы <green>успешно <white>установили <gray>хитбокс <white>бреинрота!"));
+        sender.sendMessage(parse("<prefix>Ширина: <yellow>" + width));
+        sender.sendMessage(parse("<prefix>Высота: <yellow>" + height));
+
+        for(NPC npc : puller.getWalkingNpc().keySet()){
+            BrainrotModel brainrot = puller.getWalkingNpc().get(npc);
+
+            if(brainrot.getId().equals(brainrotModel.getId())){
+                CommandSender console = Bukkit.getConsoleSender();
+                Bukkit.dispatchCommand(console, "npc select " + npc.getId());
+                Bukkit.dispatchCommand(console, "npc hitbox --width " + brainrot.getWidthHitbox() + " --height " + brainrot.getHeightHitbox());
+            }
+        }
+    }
+
+    public void marginBottomBrainrot(CommandSender sender, String[] args){
+        if(args.length < 3){
+            sender.sendMessage(parse("<prefix>Использование: <blue>/bt marginbottom <айди> <высота>"));
+            return;
+        }
+
+        String id = args[1];
+        if(!brainrotRepo.hasBrainrotById(id)){
+            sender.sendMessage(parse("<prefix>Бреинрот <red>не найден<white>."));
+            sender.sendMessage(parse("<prefix>Используйте: <blue>/bt list <white>для <green>просмотра <white>списка <blue>бреинротов<white>."));
+            return;
+        }
+
+        double margin;
+        try{
+            margin = Double.parseDouble(args[2]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage(parse("<prefix>Вы ввели <red>неверную <white>высоту!"));
+            return;
+        }
+
+        BrainrotModel brainrotModel = brainrotRepo.getById(id);
+        if(brainrotModel == null){
+            sender.sendMessage(parse("<prefix>Произошла <red>ошибка <white>с получением <blue>бреинрота<white>."));
+            sender.sendMessage(parse("<prefix>Свяжитесь с <green>администратором<white>."));
+            return;
+        }
+
+        brainrotModel.setMarginHologram(margin);
+        sender.sendMessage(parse("<prefix>Вы <green>успешно <white>установили <gray>margin-bottom <white>бреинрота!"));
+        sender.sendMessage(parse("<prefix>Высота: <yellow>" + margin));
+
+        for(NPC npc : puller.getWalkingNpc().keySet()){
+            BrainrotModel brainrot = puller.getWalkingNpc().get(npc);
+
+            if(brainrot.getId().equals(brainrotModel.getId())){
+                CommandSender console = Bukkit.getConsoleSender();
+                Bukkit.dispatchCommand(console, "npc select " + npc.getId());
+                Bukkit.dispatchCommand(console, "npc hologram marginbottom 0 " + brainrot.getMarginHologram());
+            }
         }
     }
 
@@ -197,6 +290,6 @@ public class BrainrotManager {
         sender.sendMessage(parse("<prefix>Использование:"));
         sender.sendMessage(parse("<prefix><blue>/bt lobby create <айди> <gray>- <white>Создать <gray>новое <blue>лобби"));
         sender.sendMessage(parse("<prefix><blue>/bt lobby delete <айди> <gray>- <white>Удалить <red>лобби"));
-        sender.sendMessage(parse("<prefix><blue>/bt lobby list <gray>- <white>Список <red>лобби"));
+        sender.sendMessage(parse("<prefix><blue>/bt lobby list <gray>- <white>Список <yellow>лобби"));
     }
 }

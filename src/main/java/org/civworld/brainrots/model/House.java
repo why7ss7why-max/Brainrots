@@ -11,6 +11,7 @@ import java.util.HashSet;
     private Player player;
     private final Location plateCloseDoor;
     private HashSet<BrainrotModel> brainrots;
+    private int id;
 
     public House(Location plateCloseDoor){
         this.plateCloseDoor = plateCloseDoor;

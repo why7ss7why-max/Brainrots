@@ -24,6 +24,8 @@ public class BrainrotCommand implements CommandExecutor {
 
         switch(args[0].toLowerCase()){
             case "create" -> brainrotManager.createBrainrot(sender, args);
+            case "hitbox" -> brainrotManager.hitboxBrainrot(sender, args);
+            case "marginbottom" -> brainrotManager.marginBottomBrainrot(sender, args);
             case "delete" -> brainrotManager.deleteBrainrot(sender, args);
             case "list" -> brainrotManager.listBrainrots(sender);
             case "info" -> brainrotManager.infoBrainrots(sender, args);
@@ -39,13 +41,15 @@ public class BrainrotCommand implements CommandExecutor {
     private void helpMessage(CommandSender sender){
         sender.sendMessage(parse("<prefix>Использование:"));
         sender.sendMessage(parse("<prefix><blue>/bt create <айди> <редкость> <стоимость> <мод> <прибыль> <название> <gray>- <white>Создать <gray>нового <green>бреинрота"));
+        sender.sendMessage(parse("<prefix><blue>/bt hitbox <айди> <ширина> <высота> <gray>- <white>Изменить <gray>хитбокс <green>бреинрота"));
+        sender.sendMessage(parse("<prefix><blue>/bt marginbottom <айди> <высота> <gray>- <white>Изменить <gray>длину <white>голограммы <green>бреинрота"));
         sender.sendMessage(parse("<prefix><blue>/bt delete <айди> <gray>- <white>Удалить <red>бреинрот"));
         sender.sendMessage(parse("<prefix><blue>/bt give <название> <модификатор> <gray>- <white>Выдать <gray>себе <blue>бреинрота"));
         sender.sendMessage(parse("<prefix><blue>/bt info <айди> <gray>- <white>Узнать <gray>информацию <white>о <yellow>бреинроте"));
         sender.sendMessage(parse("<prefix><blue>/bt list <gray>- <white>Посмотреть <gray>все <green>бреинроты"));
         sender.sendMessage(parse("<prefix><blue>/bt home create <gray>- <white>Создать <gray>новый <green>дом"));
         sender.sendMessage(parse("<prefix><blue>/bt home delete <gray>- <white>Удалить <red>дом"));
-        sender.sendMessage(parse("<prefix><blue>/bt lobby create <айди> <gray>- <white>Создать <gray>новое <orange>лобби"));
+        sender.sendMessage(parse("<prefix><blue>/bt lobby create <айди> <gray>- <white>Создать <gray>новое <g>лобби"));
         sender.sendMessage(parse("<prefix><blue>/bt lobby delete <айди> <gray>- <white>Удалить <red>лобби"));
     }
 }

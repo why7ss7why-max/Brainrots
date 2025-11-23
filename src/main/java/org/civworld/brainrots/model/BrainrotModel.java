@@ -12,6 +12,9 @@ import org.civworld.brainrots.type.Rarity;
     private final int cost;
     private final Modificator modificator;
     private final int earn;
+    private double widthHitbox = 0.6;
+    private double heightHitbox = 1.8;
+    private double marginHologram = 0;
 
     public BrainrotModel(String id, String displayName, Rarity rarity, int cost, Modificator modificator, int earn){
         this.id = id;

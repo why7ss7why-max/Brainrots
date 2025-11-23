@@ -12,6 +12,7 @@ repositories {
     }
     maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     maven("https://maven.enginehub.org/repo/")
+    maven("https://jitpack.io/")
     maven(url = "https://mvn.lumine.io/repository/maven-public/")
     maven {
         name = "citizens-repo"
@@ -27,6 +28,8 @@ dependencies {
     compileOnly("net.citizensnpcs:citizens-main:2.0.35-SNAPSHOT") {
         exclude(group = "*", module = "*")
     }
+
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
 
     compileOnly("org.projectlombok:lombok:1.18.42")
     annotationProcessor("org.projectlombok:lombok:1.18.42")
