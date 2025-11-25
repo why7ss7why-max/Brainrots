@@ -5,8 +5,11 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.civworld.brainrots.command.BrainrotCommand;
 import org.civworld.brainrots.config.Config;
+import org.civworld.brainrots.data.DataRepo;
 import org.civworld.brainrots.listener.NpcListener;
 import org.civworld.brainrots.manager.BrainrotManager;
+import org.civworld.brainrots.manager.CbManager;
+import org.civworld.brainrots.placeholder.LobbyPlaceholder;
 import org.civworld.brainrots.puller.Puller;
 import org.civworld.brainrots.repo.BrainrotRepo;
 import org.civworld.brainrots.repo.LobbyRepo;
@@ -28,14 +31,16 @@ public final class Brainrots extends JavaPlugin {
 
         BrainrotRepo brainrotRepo = new BrainrotRepo();
         LobbyRepo lobbyRepo = new LobbyRepo();
+        DataRepo dataRepo = new DataRepo();
 
-        config = new Config(this, brainrotRepo, lobbyRepo);
+        config = new Config(this, brainrotRepo, lobbyRepo, dataRepo);
         config.loadConfig();
 
         puller = new Puller(this, brainrotRepo, lobbyRepo);
         puller.startPull();
 
         BrainrotManager brainrotManager = new BrainrotManager(brainrotRepo, lobbyRepo, this, puller);
+        CbManager cbManager = new CbManager(lobbyRepo, dataRepo);
 
         var command = getCommand("brainrot");
         if(command == null){
@@ -43,9 +48,16 @@ public final class Brainrots extends JavaPlugin {
             error("Command is not registered! Please, fix a problem.");
             error("COMMAND WILL NOT WORK!!!");
         } else {
-            command.setExecutor(new BrainrotCommand(brainrotManager));
+            command.setExecutor(new BrainrotCommand(brainrotManager, cbManager));
             command.setTabCompleter(new BrainrotTabCompleter(brainrotRepo, lobbyRepo));
             log("Command is successfully registered!");
+        }
+
+        if(Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new LobbyPlaceholder(lobbyRepo).register();
+            log("Placeholders successfully registered.");
+        } else {
+            log("Placeholders injected in plugin, but PlaceholderAPI is don't installed.");
         }
 
         if (econ == null) {

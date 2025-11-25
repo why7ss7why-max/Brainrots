@@ -7,6 +7,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.civworld.brainrots.model.BrainrotModel;
+import org.civworld.brainrots.model.House;
 import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.puller.Puller;
 import org.civworld.brainrots.repo.BrainrotRepo;
@@ -193,6 +194,81 @@ public class BrainrotManager {
         sender.sendMessage(parse("<prefix>Стоимость: <yellow>" + brainrotModel.getCost() + "$"));
         sender.sendMessage(parse("<prefix>Модификатор: <yellow>" + brainrotModel.getModificator()));
         sender.sendMessage(parse("<prefix>Прибыль: <yellow>" + brainrotModel.getEarn() + "/с $"));
+    }
+
+    public void handleHouseCommand(CommandSender sender, String[] args){
+        if(args.length < 2){
+            helpHouseCommand(sender);
+            return;
+        }
+
+        switch(args[1].toLowerCase()){
+            case "create" -> {
+                if(!(sender instanceof Player player)){
+                    sender.sendMessage(parse("<prefix>Вы <red>не игрок<white>!"));
+                    return;
+                }
+
+                if(args.length < 5){
+                    player.sendMessage(parse("<prefix>Использование: <blue>/bt home create <айди> <лобби> <правый>"));
+                    return;
+                }
+
+                int id;
+                try{
+                    id = Integer.parseInt(args[2]);
+                } catch (NumberFormatException e) {
+                    player.sendMessage(parse("<prefix>Вы <red>не ввели <white>айди!"));
+                    return;
+                }
+
+                int lobby;
+                try{
+                    lobby = Integer.parseInt(args[3]);
+                } catch (NumberFormatException e) {
+                    player.sendMessage(parse("<prefix>Вы <red>не ввели <white>лобби!"));
+                    return;
+                }
+                Lobby lobbyModel = lobbyRepo.getByNumber(lobby);
+                if(lobbyModel == null){
+                    player.sendMessage(parse("<prefix>Лобби <red>не найдено<white>!"));
+                    return;
+                }
+
+                for(House house : lobbyModel.getHouses()){
+                    if(house.getId() == id){
+                        player.sendMessage(parse("<prefix>Дом с айди <gold>" + id + "<white> уже <red>существует<white>!"));
+                        return;
+                    }
+                }
+
+                boolean right;
+                try{
+                    right = Boolean.parseBoolean(args[4]);
+                } catch (Exception e) {
+                    player.sendMessage(parse("<prefix>Доступные <yellow>значения <white>последнего аргумента: <blue>true/false"));
+                    return;
+                }
+
+                House house = new House(player.getLocation(), id, right);
+                lobbyModel.getHouses().add(house);
+                player.sendMessage(parse("<prefix>Вы <green>успешно <white>создали <gold>дом<white>!"));
+            }
+            case "delete" -> {
+                if(args.length < 4){
+                    sender.sendMessage(parse("<prefix>Использование: <blue>/bt home delete <айди> <лобби>"));
+                    return;
+                }
+
+
+            }
+        }
+    }
+
+    private void helpHouseCommand(CommandSender sender){
+        sender.sendMessage(parse("<prefix>Использование:"));
+        sender.sendMessage(parse("<prefix><blue>/bt home create <айди> <лобби> <правый> <gray>- <white>Создать <gold>дом"));
+        sender.sendMessage(parse("<prefix><blue>/bt home delete <айди> <лобби> <gray>- <white>Удалить <gold>дом"));
     }
 
     public void handleLobbyCommand(CommandSender sender, String[] args){
