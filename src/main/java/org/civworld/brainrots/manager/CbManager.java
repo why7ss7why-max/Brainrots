@@ -56,14 +56,17 @@ public class CbManager {
                 Lobby lobbyModel = lobbyRepo.getByNumber(lobby);
 
                 for(House h : lobbyModel.getHouses()){
-                    if(h.getPlayerData() != null && h.getPlayerData().getPlayer() != null && h.getPlayerData().getPlayer().equals(player)){
-                        return;
+                    if(h.getPlayerData() != null) {
+                        if(h.getPlayerData().getPlayer().equals(player)){
+                            sender.sendMessage(parse("<prefix>Игрок <red>уже <white>взял <gold>дом<white>!"));
+                            return;
+                        }
                     }
                 }
 
                 House house = null;
                 for(House h : lobbyModel.getHouses()){
-                    if(h.getPlayerData().getPlayer() == null){
+                    if(h.getPlayerData() == null){
                         house = h;
                     }
                 }

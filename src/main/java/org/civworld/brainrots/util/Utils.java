@@ -2,6 +2,7 @@ package org.civworld.brainrots.util;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.civworld.brainrots.type.Modificator;
 import org.civworld.brainrots.type.Rarity;
 
 public final class Utils {
@@ -32,20 +33,27 @@ public final class Utils {
         return result.toString().trim();
     }
 
-    public static String formatNumber(long number) {
-        if (number < 1000) return String.valueOf(number);
+    public static String formatNumber(double number) {
+        if (number < 1000) {
+            return (number % 1 == 0)
+                    ? String.valueOf((long) number)
+                    : String.valueOf(number);
+        }
+
         final String[] units = {"K", "M", "B", "T"};
         double num = number;
         int unitIndex = -1;
+
         while (num >= 1000 && unitIndex < units.length - 1) {
             num /= 1000.0;
             unitIndex++;
         }
-        if (num % 1 == 0) {
-            return String.format("%.0f%s", num, units[unitIndex]);
-        } else {
-            return String.format("%.1f%s", num, units[unitIndex]);
-        }
+
+        String formatted = (num % 1 == 0)
+                ? String.format("%.0f", num)
+                : String.format("%.1f", num);
+
+        return formatted + units[unitIndex];
     }
 
     public static String colorFromRarity(Rarity rarity){
@@ -58,6 +66,22 @@ public final class Utils {
             case BRAINROT_GOD -> "&6";
             case SECRET -> "&0";
             case LIMITED -> "&d";
+        };
+    }
+
+    public static String colorFromModificator(Modificator modificator){
+        return switch(modificator){
+            case BRONZE -> "";
+            case GOLD -> "&e";
+            case DIAMOND -> "&b";
+            case RAINBOW -> null;
+            case LAVA -> "&6";
+            case BLOODROT -> "&4";
+            case CELESTIAL -> "&c";
+            case CANDY -> "&a";
+            case GALAXY -> "&0";
+            case YIN_YANG -> "&7";
+            case RADIOACTIVE -> "&2";
         };
     }
 }

@@ -1,6 +1,7 @@
 package org.civworld.brainrots.manager;
 
 import net.citizensnpcs.api.npc.NPC;
+import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -388,7 +389,8 @@ public class BrainrotManager {
         sender.sendMessage(parse("<prefix>Высота: <yellow>" + height));
 
         for(NPC npc : puller.getWalkingNpc().keySet()){
-            BrainrotModel brainrot = puller.getWalkingNpc().get(npc);
+            Pair<BrainrotModel, Modificator> pair = puller.getWalkingNpc().get(npc);
+            BrainrotModel brainrot = pair.getKey();
 
             if(brainrot.getId().equals(brainrotModel.getId())){
                 CommandSender console = Bukkit.getConsoleSender();
@@ -431,7 +433,8 @@ public class BrainrotManager {
         sender.sendMessage(parse("<prefix>Высота: <yellow>" + margin));
 
         for(NPC npc : puller.getWalkingNpc().keySet()){
-            BrainrotModel brainrot = puller.getWalkingNpc().get(npc);
+            Pair<BrainrotModel, Modificator> pair = puller.getWalkingNpc().get(npc);
+            BrainrotModel brainrot = pair.getKey();
 
             if(brainrot.getId().equals(brainrotModel.getId())){
                 CommandSender console = Bukkit.getConsoleSender();

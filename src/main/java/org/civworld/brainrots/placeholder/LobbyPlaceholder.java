@@ -54,6 +54,7 @@ public class LobbyPlaceholder extends PlaceholderExpansion {
             int sum = 0;
             for(House house : lobby.getHouses()){
                 PlayerData playerData = house.getPlayerData();
+                if(playerData == null) continue;
                 Player houseOwner = playerData.getPlayer();
                 if(houseOwner != null) sum++;
             }
@@ -63,6 +64,25 @@ public class LobbyPlaceholder extends PlaceholderExpansion {
             } else {
                 return "&a" + sum;
             }
+        }
+        else if (params.equals("playerlobby")){
+            if(player == null) return null;
+
+            for (Lobby l : lobbyRepo.getLobbies()){
+                for (House h : l.getHouses()){
+                    PlayerData pd = h.getPlayerData();
+                    if (pd == null) continue;
+
+                    Player housePlayer = pd.getPlayer();
+                    if (housePlayer == null) continue;
+
+                    if (housePlayer.getName().equals(player.getName())){
+                        return l.getNum() + "";
+                    }
+                }
+            }
+
+            return "&cнет";
         }
         return null;
     }

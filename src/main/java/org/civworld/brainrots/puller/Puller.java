@@ -1,6 +1,3 @@
-// =======================
-//  PULLER — FIXED VERSION
-// =======================
 package org.civworld.brainrots.puller;
 
 import lombok.Getter;
@@ -8,7 +5,8 @@ import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.event.DespawnReason;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.LookClose;
-import net.citizensnpcs.trait.HologramTrait;
+import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -19,6 +17,7 @@ import org.civworld.brainrots.model.BrainrotModel;
 import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.repo.BrainrotRepo;
 import org.civworld.brainrots.repo.LobbyRepo;
+import org.civworld.brainrots.type.Modificator;
 import org.civworld.brainrots.type.Rarity;
 
 import java.util.*;
@@ -39,8 +38,7 @@ public class Puller {
     private volatile boolean warnedNoBrainrots = false;
     private volatile boolean warnedNoLobbies = false;
 
-    @Getter
-    private final Map<NPC, BrainrotModel> walkingNpc = new ConcurrentHashMap<>();
+    @Getter private final Map<NPC, Pair<BrainrotModel, Modificator>> walkingNpc = new ConcurrentHashMap<>();
     private final Map<Integer, BrainrotModel> forcedNext = new ConcurrentHashMap<>();
 
     private volatile List<BrainrotModel> cachedList = Collections.emptyList();
@@ -63,9 +61,6 @@ public class Puller {
         for (Lobby lb : lobbyRepo.getLobbies()) forcedNext.put(lb.getNum(), model);
     }
 
-    // ======================================================================
-    // START
-    // ======================================================================
     public void startPull() {
         if (mainTask != null) return;
 
@@ -81,7 +76,6 @@ public class Puller {
                         }
                         if (!npc.getNavigator().isNavigating()) {
                             deleteNPC(npc);
-                            continue;
                         }
                     } catch (Throwable ignored) {
                         deleteNPC(npc);
@@ -109,12 +103,9 @@ public class Puller {
                 }
             }
         };
-        mainTask.runTaskTimerAsynchronously(plugin, 0, 60);
+        mainTask.runTaskTimerAsynchronously(plugin, 60L, 60L);
     }
 
-    // ======================================================================
-    // STOP
-    // ======================================================================
     public void stopPull() {
         if (mainTask != null) mainTask.cancel();
         if (monitorTask != null) monitorTask.cancel();
@@ -136,9 +127,6 @@ public class Puller {
         }
     }
 
-    // ======================================================================
-    // MAIN — FIXED NPC CREATION (без команд, без утечек!)
-    // ======================================================================
     private void createNpcSync(Lobby lobby, BrainrotModel model, CommandSender console) {
         try {
             if (model == null) return;
@@ -164,7 +152,6 @@ public class Puller {
             LookClose look = npc.getOrAddTrait(LookClose.class);
             look.lookClose(false);
 
-            // ==== команды для MEG + голограммы ====
             List<String> cmds = new ArrayList<>();
             cmds.add("npc select " + npc.getId());
             cmds.add("trait add meg_model");
@@ -173,17 +160,32 @@ public class Puller {
 
             cmds.add("npc hologram lineheight 0.25");
             cmds.add("npc hitbox --width " + model.getWidthHitbox() + " --height " + model.getHeightHitbox());
-            cmds.add("npc hologram add &a$" + formatNumber(model.getCost()));
+            if(model.getModificator() == Modificator.BRONZE) cmds.add("npc hologram add &a$" + formatNumber(model.getCost()));
+            else cmds.add("npc hologram add &a$" + formatNumber(model.getCost() * model.getModificator().getValue()));
+            if(model.getModificator() == Modificator.BRONZE) cmds.add("npc hologram add &e$" + formatNumber(model.getEarn()) + "/с");
+            else cmds.add("npc hologram add &e$" + formatNumber(model.getEarn() * model.getModificator().getValue()) + "/с");
             cmds.add("npc hologram marginbottom 0 " + model.getMarginHologram());
-            cmds.add("npc hologram add &e$" + formatNumber(model.getEarn()) + "/с");
 
             if (model.getRarity().equals(Rarity.BRAINROT_GOD)) {
                 cmds.add("npc hologram add &#FF0000B&#FF4000r&#FF7F00a&#FFBF00i&#FFFF00n&#80FF00r&#00FF00o&#0000FFt &#4A00E9G&#6F00DEo&#9400D3d");
-            } else {
+            }
+            else {
                 cmds.add("npc hologram add &f" + colorFromRarity(model.getRarity()) + capitalizeFirst(model.getRarity().toString()));
             }
             cmds.add("npc hologram add &f" + capitalizeFirst(model.getDisplayName()));
-            // ==== конец команд ====
+
+            if(model.getModificator() != Modificator.BRONZE) {
+                if (model.getModificator() == Modificator.RAINBOW) {
+                    cmds.add("npc hologram add &#FF0000R&#FF7F00a&#FFFF00i&#80FF00n&#00FF00b&#0000FFo&#4B0082w");
+                } else if(model.getModificator() == Modificator.YIN_YANG) {
+                    cmds.add("npc hologram add &#FFFFFFY&#ECECECi&#D8D8D8n&#C5C5C5g &#9E9E9EY&#8B8B8Ba&#777777n&#646464g");
+                } else {
+                    if(model.getModificator() == Modificator.GALAXY){
+                        cmds.add("npc glowing");
+                    }
+                    cmds.add("npc hologram add &f" + colorFromModificator(model.getModificator()) + capitalizeFirst(model.getModificator() + ""));
+                }
+            }
 
             for (String c : cmds) {
                 try {
@@ -193,7 +195,7 @@ public class Puller {
                 }
             }
 
-            walkingNpc.put(npc, model);
+            walkingNpc.put(npc, new MutablePair<>(model, model.getModificator()));
             npc.getNavigator().setTarget(end);
 
         } catch (Exception e) {
@@ -201,9 +203,6 @@ public class Puller {
         }
     }
 
-    // ======================================================================
-    // DELETE — полностью убираем NPC из Citizens (исправляет утечки!)
-    // ======================================================================
     private void deleteNPC(NPC npc) {
         if (npc == null) return;
 
@@ -213,9 +212,6 @@ public class Puller {
         walkingNpc.remove(npc);
     }
 
-    // ======================================================================
-    // CACHE
-    // ======================================================================
     private void refreshCacheIfNeeded() {
         long now = System.currentTimeMillis();
         if (now - cacheTimeMillis < CACHE_TTL_MS && !cachedList.isEmpty()) return;
@@ -237,9 +233,6 @@ public class Puller {
         cacheTimeMillis = now;
     }
 
-    // ======================================================================
-    // RANDOM
-    // ======================================================================
     private BrainrotModel getRandomBrainrotCached() {
         if (cachedList.isEmpty()) return null;
 
@@ -272,7 +265,31 @@ public class Puller {
         }
         if (chosen == null) chosen = cachedList.getFirst().getRarity();
 
+        Modificator chosenMod = null;
+
+        double totalMod = 0;
+        for (Modificator m : Modificator.values()) {
+            totalMod += m.getChance();
+        }
+
+        double rollMod = ThreadLocalRandom.current().nextDouble() * totalMod;
+        double curMod = 0;
+
+        for (Modificator m : Modificator.values()) {
+            curMod += m.getChance();
+            if (rollMod <= curMod) {
+                chosenMod = m;
+                break;
+            }
+        }
+
+        if (chosenMod == null) chosenMod = Modificator.BRONZE;
+
         List<BrainrotModel> list = byRarity.get(chosen);
-        return list.get(ThreadLocalRandom.current().nextInt(list.size()));
+        BrainrotModel model = list.get(ThreadLocalRandom.current().nextInt(list.size()));
+
+        model.setModificator(chosenMod);
+
+        return model;
     }
 }

@@ -7,7 +7,7 @@ import org.civworld.brainrots.data.PlayerData;
 
 @Getter @Setter public class House {
     private final Location plateCloseDoor;
-    private PlayerData playerData;
+    private PlayerData playerData = null;
     private final int id;
     private final boolean right;
 
