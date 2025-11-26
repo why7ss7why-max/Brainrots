@@ -57,8 +57,8 @@ public class BrainrotCommand implements CommandExecutor {
         sender.sendMessage(parse("<prefix><blue>/bt delete <айди> <gray>- <white>Удалить <red>бреинрот"));
         sender.sendMessage(parse("<prefix><blue>/bt info <айди> <gray>- <white>Узнать <gray>информацию <white>о <yellow>бреинроте"));
         sender.sendMessage(parse("<prefix><blue>/bt list <gray>- <white>Посмотреть <gray>все <green>бреинроты"));
-        sender.sendMessage(parse("<prefix><blue>/bt home create <gray>- <white>Создать <gray>новый <green>дом"));
-        sender.sendMessage(parse("<prefix><blue>/bt home delete <gray>- <white>Удалить <red>дом"));
+        sender.sendMessage(parse("<prefix><blue>/bt house create <gray>- <white>Создать <gray>новый <green>дом"));
+        sender.sendMessage(parse("<prefix><blue>/bt house delete <gray>- <white>Удалить <red>дом"));
         sender.sendMessage(parse("<prefix><blue>/bt lobby create <айди> <gray>- <white>Создать <gray>новое <g>лобби"));
         sender.sendMessage(parse("<prefix><blue>/bt lobby delete <айди> <gray>- <white>Удалить <red>лобби"));
     }
