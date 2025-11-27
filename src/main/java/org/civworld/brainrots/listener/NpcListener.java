@@ -7,6 +7,8 @@ import net.citizensnpcs.api.npc.NPC;
 import net.milkbowl.vault.economy.Economy;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,11 +16,17 @@ import org.civworld.brainrots.model.BrainrotModel;
 import org.civworld.brainrots.puller.Puller;
 import org.civworld.brainrots.type.Modificator;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import static org.civworld.brainrots.util.Utils.parse;
 
 public class NpcListener implements Listener {
     private final Economy economy;
     private final Puller puller;
+
+    private final Map<NPC, Long> npcSoundCooldowns = new ConcurrentHashMap<>();
+    private static final long SOUND_COOLDOWN = 1000;
 
     public NpcListener(Economy economy, Puller puller){
         this.economy = economy;
@@ -49,7 +57,6 @@ public class NpcListener implements Listener {
 
         Modificator modificator = pair.getValue();
         double cost = modificator == Modificator.BRONZE ? brainrotModel.getCost() : brainrotModel.getCost() * modificator.getValue();
-
         String costFormatted = formatDouble(cost);
 
         if(economy.getBalance(clicker) < cost){
@@ -58,6 +65,24 @@ public class NpcListener implements Listener {
         }
 
         clicker.sendMessage(parse("<prefix>Вам <green>хватает <white>монет: <blue>" + costFormatted));
+
+        long now = System.currentTimeMillis();
+        Long last = npcSoundCooldowns.get(npc);
+
+        if(last == null || now - last >= SOUND_COOLDOWN){
+            for (Player p : npc.getEntity().getWorld().getPlayers()) {
+                if (p.getLocation().distance(npc.getStoredLocation()) <= 16) {
+                    p.playSound(
+                            npc.getStoredLocation(),
+                            "brainrot:sound." + brainrotModel.getId(),
+                            SoundCategory.BLOCKS,
+                            1.0f,
+                            1.0f
+                    );
+                }
+            }
+            npcSoundCooldowns.put(npc, now);
+        }
     }
 
     public static String formatDouble(double value) {
