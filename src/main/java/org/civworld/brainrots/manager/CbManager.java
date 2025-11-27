@@ -1,7 +1,6 @@
 package org.civworld.brainrots.manager;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.civworld.brainrots.data.DataRepo;
@@ -25,6 +24,7 @@ public class CbManager {
         if(args.length < 2){
             sender.sendMessage(parse("<prefix>Использование:"));
             sender.sendMessage(parse("<prefix><blue>/bt commandblock lobbyjoin <игрок> <лобби>"));
+            sender.sendMessage(parse("<prefix><blue>/bt commandblock lobbyleave <игрок>"));
             sender.sendMessage(parse("<prefix><blue>/bt commandblock brainrotuse <игрок> <лобби> <дом> <айди>"));
             return;
         }
@@ -58,7 +58,7 @@ public class CbManager {
                 for(House h : lobbyModel.getHouses()){
                     if(h.getPlayerData() != null) {
                         if(h.getPlayerData().getPlayer().equals(player)){
-                            sender.sendMessage(parse("<prefix>Игрок <red>уже <white>взял <gold>дом<white>!"));
+                            player.sendMessage(parse("<prefix>Вы <red>уже <white>взяли <gold>дом<white>!"));
                             return;
                         }
                     }
@@ -80,6 +80,51 @@ public class CbManager {
 
                 player.sendMessage(parse("<prefix>Вы <green>взяли <white>дом!"));
                 player.teleport(house.isRight() ? house.getPlateCloseDoor().clone().add(0, 0, 1) : house.getPlateCloseDoor().clone().add(0, 0, -1));
+            }
+            case "lobbyleave" -> {
+                if(args.length < 3){
+                    sender.sendMessage(parse("<prefix>Использование: <blue>/bt commandblock lobbyleave <игрок>"));
+                    return;
+                }
+
+                Player player = Bukkit.getPlayer(args[2]);
+                if(player == null || !player.isOnline()){
+                    sender.sendMessage(parse("<prefix>Игрок <red>не найден<white>!"));
+                    return;
+                }
+
+                Lobby lobby = null;
+                for(Lobby l : lobbyRepo.getLobbies()){
+                    for(House h : l.getHouses()){
+                        if(h.getPlayerData() != null) {
+                            if(h.getPlayerData().getPlayer().equals(player)){
+                                lobby = l;
+                            }
+                        }
+                    }
+                }
+                if(lobby == null){
+                    player.sendMessage(parse("<prefix>Вы <red>не телепортировались <white>в лобби."));
+                    return;
+                }
+
+                House house = null;
+                for(House h : lobby.getHouses()){
+                    if(h.getPlayerData() != null) {
+                        if(h.getPlayerData().getPlayer().equals(player)){
+                            house = h;
+                        }
+                    }
+                }
+                if(house == null){
+                    player.sendMessage(parse("<prefix>Вы <red>не взяли <white>дом."));
+                    return;
+                }
+
+                house.setPlayerData(null);
+
+                player.sendMessage(parse("<prefix>Вы <green>покинули <white>дом!"));
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "spawn " + player.getName());
             }
             case "brainrotuse" -> {
 

@@ -96,6 +96,7 @@ public final class Config {
             for(House house : lobby.getHouses()){
                 String housePath = path + "houses." + house.getId() + ".";
                 config.set(housePath + "plateCloseDoor", house.getPlateCloseDoor());
+                config.set(housePath + "right", house.isRight());
             }
         }
 

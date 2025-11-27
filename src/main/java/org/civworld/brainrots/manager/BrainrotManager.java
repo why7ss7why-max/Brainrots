@@ -6,7 +6,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.civworld.brainrots.model.BrainrotModel;
 import org.civworld.brainrots.model.House;
 import org.civworld.brainrots.model.Lobby;
@@ -17,19 +16,18 @@ import org.civworld.brainrots.type.Modificator;
 import org.civworld.brainrots.type.Rarity;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
 import static org.civworld.brainrots.util.Utils.parse;
 
 public class BrainrotManager {
     private final BrainrotRepo brainrotRepo;
     private final LobbyRepo lobbyRepo;
-    private final Plugin plugin;
     private final Puller puller;
 
-    public BrainrotManager(BrainrotRepo brainrotRepo, LobbyRepo lobbyRepo, Plugin plugin, Puller puller){
+    public BrainrotManager(BrainrotRepo brainrotRepo, LobbyRepo lobbyRepo, Puller puller){
         this.brainrotRepo = brainrotRepo;
         this.lobbyRepo = lobbyRepo;
-        this.plugin = plugin;
         this.puller = puller;
     }
 
@@ -211,7 +209,7 @@ public class BrainrotManager {
                 }
 
                 if(args.length < 5){
-                    player.sendMessage(parse("<prefix>Использование: <blue>/bt home create <айди> <лобби> <правый>"));
+                    player.sendMessage(parse("<prefix>Использование: <blue>/bt house create <айди> <лобби> <правый>"));
                     return;
                 }
 
@@ -257,19 +255,107 @@ public class BrainrotManager {
             }
             case "delete" -> {
                 if(args.length < 4){
-                    sender.sendMessage(parse("<prefix>Использование: <blue>/bt home delete <айди> <лобби>"));
+                    sender.sendMessage(parse("<prefix>Использование: <blue>/bt house delete <айди> <лобби>"));
                     return;
                 }
 
 
+                int id;
+                try{
+                    id = Integer.parseInt(args[2]);
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(parse("<prefix>Вы <red>не ввели <white>айди!"));
+                    return;
+                }
+
+
+                int lobby;
+                try{
+                    lobby = Integer.parseInt(args[3]);
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(parse("<prefix>Вы <red>не ввели <white>лобби!"));
+                    return;
+                }
+
+                Lobby lobbyModel = lobbyRepo.getByNumber(lobby);
+                if(lobbyModel == null) {
+                    sender.sendMessage(parse("<prefix>Лобби <red>не найдено<white>!"));
+                    return;
+                }
+
+                House house = lobbyModel.getHouses().stream().filter(h -> h.getId() == id).findFirst().orElse(null);
+                if(house == null) {
+                    sender.sendMessage(parse("<prefix>Дом с айди <gold>" + id + "<white> не <red>найден<white>!"));
+                    return;
+                }
+
+                lobbyModel.getHouses().remove(house);
+                sender.sendMessage(parse("<prefix>Вы <green>успешно <white>удалили <gold>дом<white>!"));
             }
+            case "list" -> {
+                if(args.length < 3){
+                    sender.sendMessage(parse("<prefix>Использование: <blue>/bt house list <лобби>"));
+                    return;
+                }
+
+                if(lobbyRepo.getLobbies().isEmpty()){
+                    sender.sendMessage(parse("<prefix>Лобби-список <red>пуст<white>!"));
+                    return;
+                }
+
+                int lobby;
+                try{
+                    lobby = Integer.parseInt(args[2]);
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(parse("<prefix>Вы <red>не ввели <white>лобби!"));
+                    return;
+                }
+
+                Lobby lobbyModel = lobbyRepo.getByNumber(lobby);
+                if(lobbyModel == null) {
+                    sender.sendMessage(parse("<prefix>Лобби <red>не найдено<white>!"));
+                    return;
+                }
+
+                StringBuilder stringBuilder = new StringBuilder();
+
+                if (lobbyModel.getHouses().isEmpty()) {
+                    stringBuilder.append("<red>пусто");
+                } else {
+                    lobbyModel.getHouses().stream()
+                            .sorted(Comparator.comparingInt(House::getId))
+                            .forEach(house -> {
+                                Location loc = house.getPlateCloseDoor();
+
+                                stringBuilder.append("\n<gray>- <white>Дом <blue>")
+                                        .append(house.getId())
+                                        .append(" <dark_gray>(<gray>правый: ")
+                                        .append(house.isRight())
+                                        .append("<dark_gray>) ")
+                                        .append("<hover:show_text:'<white>Нажмите <gray>[<blue>ЛКМ<gray>]<white>, чтобы <blue>телепортироваться'>")
+                                        .append("<click:run_command:'/minecraft:tp ")
+                                        .append(sender.getName()).append(" ")
+                                        .append(loc.getBlockX()).append(" ")
+                                        .append(loc.getBlockY()).append(" ")
+                                        .append(loc.getBlockZ()).append(" ")
+                                        .append(loc.getYaw()).append(" ")
+                                        .append(loc.getPitch())
+                                        .append("'>")
+                                        .append("<blue>[ТП]")
+                                        .append("</click></hover>");
+                            });
+                }
+
+                sender.sendMessage(parse("<prefix>Список <gold>домов<white> в лобби <yellow>" + lobby + " <gray>: <blue>" + stringBuilder));
+            }
+            default -> helpHouseCommand(sender);
         }
     }
 
     private void helpHouseCommand(CommandSender sender){
         sender.sendMessage(parse("<prefix>Использование:"));
-        sender.sendMessage(parse("<prefix><blue>/bt home create <айди> <лобби> <правый> <gray>- <white>Создать <gold>дом"));
-        sender.sendMessage(parse("<prefix><blue>/bt home delete <айди> <лобби> <gray>- <white>Удалить <gold>дом"));
+        sender.sendMessage(parse("<prefix><blue>/bt house create <айди> <лобби> <правый> <gray>- <white>Создать <gold>дом"));
+        sender.sendMessage(parse("<prefix><blue>/bt house delete <айди> <лобби> <gray>- <white>Удалить <gold>дом"));
     }
 
     public void handleLobbyCommand(CommandSender sender, String[] args){

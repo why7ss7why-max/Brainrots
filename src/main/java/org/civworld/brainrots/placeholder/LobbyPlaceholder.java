@@ -7,6 +7,7 @@ import org.civworld.brainrots.data.PlayerData;
 import org.civworld.brainrots.model.House;
 import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.repo.LobbyRepo;
+import org.jetbrains.annotations.NotNull;
 
 public class LobbyPlaceholder extends PlaceholderExpansion {
     private final LobbyRepo lobbyRepo;
@@ -15,23 +16,19 @@ public class LobbyPlaceholder extends PlaceholderExpansion {
         this.lobbyRepo = lobbyRepo;
     }
 
-    @Override
-    public String getAuthor() {
+    @Override @NotNull public String getAuthor() {
         return "uuun";
     }
 
-    @Override
-    public String getIdentifier() {
+    @Override @NotNull public String getIdentifier() {
         return "brainrots";
     }
 
-    @Override
-    public String getVersion() {
+    @Override @NotNull public String getVersion() {
         return "1.0.0";
     }
 
-    @Override
-    public boolean persist() {
+    @Override public boolean persist() {
         return true;
     }
 

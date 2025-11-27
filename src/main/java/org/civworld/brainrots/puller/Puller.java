@@ -35,8 +35,6 @@ public class Puller {
 
     private BukkitRunnable mainTask = null;
     private BukkitRunnable monitorTask = null;
-    private volatile boolean warnedNoBrainrots = false;
-    private volatile boolean warnedNoLobbies = false;
 
     @Getter private final Map<NPC, Pair<BrainrotModel, Modificator>> walkingNpc = new ConcurrentHashMap<>();
     private final Map<Integer, BrainrotModel> forcedNext = new ConcurrentHashMap<>();

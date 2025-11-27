@@ -1,7 +1,5 @@
 package org.civworld.brainrots.listener;
 
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.event.CitizensEnableEvent;
 import net.citizensnpcs.api.event.NPCRightClickEvent;
 import net.citizensnpcs.api.npc.NPC;
 import net.milkbowl.vault.economy.Economy;
@@ -36,7 +34,6 @@ public class NpcListener implements Listener {
         if(brainrotModel == null) return;
 
         Modificator modificator = pair.getValue();
-        double earn = brainrotModel.getEarn() * modificator.getValue();
         double cost = modificator == Modificator.BRONZE ? brainrotModel.getCost() : brainrotModel.getCost() * modificator.getValue();
 
         if(economy.getBalance(clicker) < cost){

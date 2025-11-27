@@ -39,7 +39,7 @@ public final class Brainrots extends JavaPlugin {
         puller = new Puller(this, brainrotRepo, lobbyRepo);
         puller.startPull();
 
-        BrainrotManager brainrotManager = new BrainrotManager(brainrotRepo, lobbyRepo, this, puller);
+        BrainrotManager brainrotManager = new BrainrotManager(brainrotRepo, lobbyRepo, puller);
         CbManager cbManager = new CbManager(lobbyRepo, dataRepo);
 
         var command = getCommand("brainrot");
