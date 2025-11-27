@@ -1,9 +1,12 @@
 package org.civworld.brainrots.tabcompleter;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.civworld.brainrots.model.BrainrotModel;
+import org.civworld.brainrots.model.House;
 import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.repo.BrainrotRepo;
 import org.civworld.brainrots.repo.LobbyRepo;
@@ -40,6 +43,77 @@ public class BrainrotTabCompleter implements TabCompleter {
         String subCommand = args[0].toLowerCase();
 
         switch (subCommand) {
+            case "house" -> {
+                if (args.length == 2) {
+                    suggestions.addAll(List.of("create", "delete", "info"));
+                }
+                switch (args[1].toLowerCase()) {
+                    case "create" -> {
+                        if(args.length == 3){
+                            int num;
+                            try {
+                                num = Integer.parseInt(args[2]);
+                            } catch (NumberFormatException e) {
+                                return List.of("[не число]");
+                            }
+
+                            String formatted = NumberFormat.getNumberInstance(Locale.US).format(num);
+                            return List.of("[" + formatted + "]");
+                        }
+                        if(args.length == 4){
+                            for(Lobby lobby : lobbyRepo.getLobbies()){
+                                suggestions.add(lobby.getNum() + "");
+                            }
+                        }
+                        if(args.length == 5){
+                            suggestions.addAll(List.of("true", "false"));
+                        }
+                    }
+                    case "delete" -> {
+                        if(args.length == 3){
+                            for(Lobby lobby : lobbyRepo.getLobbies()){
+                                suggestions.add(lobby.getNum() + "");
+                            }
+                        }
+                        if(args.length == 4){
+                            int num;
+                            try{
+                                num = Integer.parseInt(args[2]);
+                            } catch (NumberFormatException e) {
+                                return List.of("[нет лобби]");
+                            }
+
+                            Lobby lobby = lobbyRepo.getByNumber(num);
+                            suggestions.addAll(
+                                    lobby.getHouses().stream()
+                                            .map(House::getId)
+                                            .map(String::valueOf)
+                                            .toList()
+                            );
+                        }
+                    }
+                    case "list" -> {
+                        for(Lobby lobby : lobbyRepo.getLobbies()) suggestions.add(lobby.getNum() + "");
+                    }
+                }
+            }
+            case "commandblock" -> {
+                if (args.length == 2) {
+                    suggestions.addAll(List.of("lobbyjoin", "lobbyleave"));
+                }
+                if (args.length == 3) {
+                    suggestions.addAll(
+                            Arrays.stream(Bukkit.getOnlinePlayers().toArray(new Player[0]))
+                                    .map(Player::getName)
+                                    .toList()
+                    );
+                }
+                if(args.length == 4 && args[1].equalsIgnoreCase("lobbyjoin")){
+                    for (Lobby lobby : lobbyRepo.getLobbies()) {
+                        suggestions.add(lobby.getNum() + "");
+                    }
+                }
+            }
             case "create" -> {
                 if (args.length == 2) return List.of("[" + args[1] + "]");
                 if (args.length == 3) {

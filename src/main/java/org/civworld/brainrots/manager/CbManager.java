@@ -25,7 +25,6 @@ public class CbManager {
             sender.sendMessage(parse("<prefix>Использование:"));
             sender.sendMessage(parse("<prefix><blue>/bt commandblock lobbyjoin <игрок> <лобби>"));
             sender.sendMessage(parse("<prefix><blue>/bt commandblock lobbyleave <игрок>"));
-            sender.sendMessage(parse("<prefix><blue>/bt commandblock brainrotuse <игрок> <лобби> <дом> <айди>"));
             return;
         }
 
@@ -124,7 +123,7 @@ public class CbManager {
                 house.setPlayerData(null);
 
                 player.sendMessage(parse("<prefix>Вы <green>покинули <white>дом!"));
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:tp " + player.getName() + " 51 42 -634 0 0");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:tp " + player.getName() + " 581 42 -634 0 0");
             }
             case "brainrotuse" -> {
 

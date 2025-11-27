@@ -255,14 +255,13 @@ public class BrainrotManager {
             }
             case "delete" -> {
                 if(args.length < 4){
-                    sender.sendMessage(parse("<prefix>Использование: <blue>/bt house delete <айди> <лобби>"));
+                    sender.sendMessage(parse("<prefix>Использование: <blue>/bt house delete <лобби> <айди>"));
                     return;
                 }
 
-
                 int id;
                 try{
-                    id = Integer.parseInt(args[2]);
+                    id = Integer.parseInt(args[3]);
                 } catch (NumberFormatException e) {
                     sender.sendMessage(parse("<prefix>Вы <red>не ввели <white>айди!"));
                     return;
@@ -271,7 +270,7 @@ public class BrainrotManager {
 
                 int lobby;
                 try{
-                    lobby = Integer.parseInt(args[3]);
+                    lobby = Integer.parseInt(args[2]);
                 } catch (NumberFormatException e) {
                     sender.sendMessage(parse("<prefix>Вы <red>не ввели <white>лобби!"));
                     return;
@@ -427,6 +426,20 @@ public class BrainrotManager {
                 lobbyRepo.getLobbies().remove(lobby);
 
                 sender.sendMessage(parse("<prefix>Вы <green>успешно <white>удалили <gray>лобби <white>с ID: <blue>" + id + "<white>!"));
+            }
+            case "list" -> {
+                if(lobbyRepo.getLobbies().isEmpty()){
+                    sender.sendMessage(parse("<prefix>Лобби-список <red>пуст<white>!"));
+                    return;
+                }
+
+                StringBuilder stringBuilder = new StringBuilder();
+
+                for(Lobby lobby : lobbyRepo.getLobbies()){
+                    stringBuilder.append(lobby.getNum()).append(" ");
+                }
+
+                sender.sendMessage(parse("<prefix>Список лобби: <blue>" + stringBuilder + "<gray>(<blue>" + lobbyRepo.getLobbies().size() + "<gray>)"));
             }
             default -> helpLobbyCommand(sender);
         }
