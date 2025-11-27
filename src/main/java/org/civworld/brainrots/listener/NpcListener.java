@@ -36,11 +36,19 @@ public class NpcListener implements Listener {
         Modificator modificator = pair.getValue();
         double cost = modificator == Modificator.BRONZE ? brainrotModel.getCost() : brainrotModel.getCost() * modificator.getValue();
 
+        String costFormatted = formatDouble(cost);
+
         if(economy.getBalance(clicker) < cost){
             clicker.sendMessage(parse("<prefix>Недостаточно <red>монет<white>!"));
             return;
         }
 
-        clicker.sendMessage(parse("<prefix>Вам <green>хватает <white>монет: <blue>" + cost));
+        clicker.sendMessage(parse("<prefix>Вам <green>хватает <white>монет: <blue>" + costFormatted));
+    }
+
+    public static String formatDouble(double value) {
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#.################");
+        df.setGroupingUsed(false);
+        return df.format(value);
     }
 }
