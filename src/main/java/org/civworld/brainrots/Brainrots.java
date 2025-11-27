@@ -66,7 +66,7 @@ public final class Brainrots extends JavaPlugin {
             return;
         }
 
-        Bukkit.getPluginManager().registerEvents(new NpcListener(econ, puller), this);
+        Bukkit.getPluginManager().registerEvents(new NpcListener(econ, puller, lobbyRepo), this);
 
         log("Plugin successfully enabled!");
     }

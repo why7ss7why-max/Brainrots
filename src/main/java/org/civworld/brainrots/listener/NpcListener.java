@@ -7,13 +7,18 @@ import net.citizensnpcs.api.npc.NPC;
 import net.milkbowl.vault.economy.Economy;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.civworld.brainrots.data.PlayerData;
 import org.civworld.brainrots.model.BrainrotModel;
+import org.civworld.brainrots.model.House;
+import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.puller.Puller;
+import org.civworld.brainrots.repo.LobbyRepo;
 import org.civworld.brainrots.type.Modificator;
 
 import java.util.Map;
@@ -24,13 +29,15 @@ import static org.civworld.brainrots.util.Utils.parse;
 public class NpcListener implements Listener {
     private final Economy economy;
     private final Puller puller;
+    private final LobbyRepo lobbyRepo;
 
     private final Map<NPC, Long> npcSoundCooldowns = new ConcurrentHashMap<>();
     private static final long SOUND_COOLDOWN = 1000;
 
-    public NpcListener(Economy economy, Puller puller){
+    public NpcListener(Economy economy, Puller puller, LobbyRepo lobbyRepo){
         this.economy = economy;
         this.puller = puller;
+        this.lobbyRepo = lobbyRepo;
     }
 
     @EventHandler
@@ -48,6 +55,27 @@ public class NpcListener implements Listener {
     public void onClick(NPCRightClickEvent event){
         Player clicker = event.getClicker();
         NPC npc = event.getNPC();
+
+        House house = null;
+        PlayerData playerData = null;
+        // ищем дом конкретного кликающего игрока в доступных лобби
+        for(Lobby l : lobbyRepo.getLobbies()){
+            for(House h : l.getHouses()){
+                PlayerData pd = h.getPlayerData();
+                if(pd == null) continue;
+                if (pd.getPlayer().equals(clicker)){
+                    playerData = pd;
+                    house = h;
+                    break;
+                }
+            }
+            if (house != null) break;
+        }
+
+        if(playerData == null){
+            clicker.sendMessage(parse("<prefix>Вы <red>не состоите<white> в <blue>лобби<white>!"));
+            return;
+        }
 
         Pair<BrainrotModel, Modificator> pair = puller.getWalkingNpc().getOrDefault(npc, null);
         if(pair == null) return;
@@ -83,6 +111,13 @@ public class NpcListener implements Listener {
             }
             npcSoundCooldowns.put(npc, now);
         }
+
+        Location newLoc = house.getPlateCloseDoor().clone().add(0, -1, house.isRight() ? 26 : -26);
+        economy.withdrawPlayer(clicker, cost);
+        clicker.sendMessage(parse("<prefix>С вас <gold>" + costFormatted + "<white> монет <green>списано<white>!"));
+        clicker.sendMessage(parse("<prefix>Нпс идёт по координатам " + newLoc.getX() + " " + newLoc.getY() + " " + newLoc.getZ()));
+        // плавное перемещение NPC небольшими шагами (значение шага можно регулировать)
+        puller.moveNpcSmooth(npc, newLoc, 1.0);
     }
 
     public static String formatDouble(double value) {
