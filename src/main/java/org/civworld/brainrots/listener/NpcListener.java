@@ -1,9 +1,12 @@
 package org.civworld.brainrots.listener;
 
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.event.CitizensEnableEvent;
 import net.citizensnpcs.api.event.NPCRightClickEvent;
 import net.citizensnpcs.api.npc.NPC;
 import net.milkbowl.vault.economy.Economy;
 import org.apache.commons.lang3.tuple.Pair;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -20,6 +23,17 @@ public class NpcListener implements Listener {
     public NpcListener(Economy economy, Puller puller){
         this.economy = economy;
         this.puller = puller;
+    }
+
+    @EventHandler
+    public void onLoad(CitizensEnableEvent event){
+        for(NPC npc : CitizensAPI.getNPCRegistry()){
+            if(npc.getName().equals("putevoditel") || npc.getName().equals("quests")) continue;
+            npc.despawn();
+            npc.destroy();
+            CitizensAPI.getNPCRegistry().deregister(npc);
+        }
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "citizens save");
     }
 
     @EventHandler

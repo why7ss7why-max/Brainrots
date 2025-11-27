@@ -48,7 +48,7 @@ public final class Brainrots extends JavaPlugin {
             error("Command is not registered! Please, fix a problem.");
             error("COMMAND WILL NOT WORK!!!");
         } else {
-            command.setExecutor(new BrainrotCommand(brainrotManager, cbManager));
+            command.setExecutor(new BrainrotCommand(brainrotManager, cbManager, this));
             command.setTabCompleter(new BrainrotTabCompleter(brainrotRepo, lobbyRepo));
             log("Command is successfully registered!");
         }

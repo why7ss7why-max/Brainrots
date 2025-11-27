@@ -1,8 +1,11 @@
 package org.civworld.brainrots.manager;
 
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.civworld.brainrots.data.DataRepo;
 import org.civworld.brainrots.data.PlayerData;
 import org.civworld.brainrots.model.House;

@@ -1,21 +1,31 @@
 package org.civworld.brainrots.command;
 
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.civworld.brainrots.manager.BrainrotManager;
 import org.civworld.brainrots.manager.CbManager;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.civworld.brainrots.util.Utils.parse;
 
 public class BrainrotCommand implements CommandExecutor {
     private final BrainrotManager brainrotManager;
     private final CbManager cbManager;
+    private final Plugin plugin;
 
-    public BrainrotCommand(BrainrotManager brainrotManager, CbManager cbManager){
+    public BrainrotCommand(BrainrotManager brainrotManager, CbManager cbManager, Plugin plugin){
         this.brainrotManager = brainrotManager;
         this.cbManager = cbManager;
+        this.plugin = plugin;
     }
 
     @Override
@@ -40,12 +50,45 @@ public class BrainrotCommand implements CommandExecutor {
             case "lobby" -> brainrotManager.handleLobbyCommand(sender, args);
             case "force" -> brainrotManager.force(sender, args);
             case "commandblock" -> cbManager.handleMainCmd(sender, args);
+            case "deletenontickingentity" -> removeNonTickingEntitiesBatched(sender, plugin);
             case "house" -> brainrotManager.handleHouseCommand(sender, args);
 //            case "give" -> brainrotManager.giveBrainrot(sender, args);
             default -> helpMessage(sender);
         }
 
         return true;
+    }
+
+
+    public void removeNonTickingEntitiesBatched(CommandSender sender, Plugin plugin) {
+        List<Entity> allEntities = new ArrayList<>();
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            for (World world : Bukkit.getWorlds()) {
+                for (Entity entity : world.getEntities()) {
+                    if (entity instanceof Player) continue;
+                    if (!entity.isTicking()) allEntities.add(entity);
+                }
+            }
+
+            sender.sendMessage(parse("<prefix>Найдено <green>" + allEntities.size() + "<white> non-ticking сущностей. Начинаем удаление..."));
+
+            final int batchSize = 50;
+            for (int i = 0; i < allEntities.size(); i += batchSize) {
+                int start = i;
+                int end = Math.min(i + batchSize, allEntities.size());
+                List<Entity> batch = allEntities.subList(start, end);
+
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    for (Entity e : batch) e.remove();
+                }, (i / batchSize));
+            }
+
+            Bukkit.getScheduler().runTaskLater(plugin, () ->
+                            sender.sendMessage(parse("<prefix>Удалено <green>" + allEntities.size() + "<white> non-ticking сущностей!")),
+                    (allEntities.size() / batchSize) + 1
+            );
+        });
     }
 
     private void helpMessage(CommandSender sender){
