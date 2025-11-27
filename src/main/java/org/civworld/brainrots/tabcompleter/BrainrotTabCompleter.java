@@ -33,7 +33,7 @@ public class BrainrotTabCompleter implements TabCompleter {
         List<String> suggestions = new ArrayList<>();
 
         if (args.length == 1) {
-            suggestions.addAll(List.of("create", "hitbox", "marginbottom", "delete", "info", "list", "house", "lobby", "force"));
+            suggestions.addAll(List.of("create", "hitbox", "marginbottom", "delete", "info", "list", "house", "lobby", "force", "commandblock"));
             return filter(args[0], suggestions);
         }
 

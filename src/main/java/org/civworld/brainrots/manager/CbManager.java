@@ -124,7 +124,7 @@ public class CbManager {
                 house.setPlayerData(null);
 
                 player.sendMessage(parse("<prefix>Вы <green>покинули <white>дом!"));
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "spawn " + player.getName());
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:tp " + player.getName() + " 51 42 -634 0 0");
             }
             case "brainrotuse" -> {
 
