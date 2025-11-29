@@ -1,26 +1,30 @@
 package org.civworld.brainrots.manager;
 
+import eu.decentsoftware.holograms.api.DHAPI;
+import eu.decentsoftware.holograms.api.holograms.Hologram;
+import eu.decentsoftware.holograms.api.holograms.HologramLine;
 import org.bukkit.Bukkit;
-import org.bukkit.World;
+import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.civworld.brainrots.data.DataRepo;
 import org.civworld.brainrots.data.PlayerData;
 import org.civworld.brainrots.model.House;
 import org.civworld.brainrots.model.Lobby;
+import org.civworld.brainrots.puller.Puller;
 import org.civworld.brainrots.repo.LobbyRepo;
 
-import static org.civworld.brainrots.util.Utils.parse;
+import static org.civworld.brainrots.util.Utils.*;
 
 public class CbManager {
     private final LobbyRepo lobbyRepo;
     private final DataRepo dataRepo;
+    private final Puller puller;
 
-    public CbManager(LobbyRepo lobbyRepo, DataRepo dataRepo){
+    public CbManager(LobbyRepo lobbyRepo, DataRepo dataRepo, Puller puller){
         this.lobbyRepo = lobbyRepo;
         this.dataRepo = dataRepo;
+        this.puller = puller;
     }
 
     public void handleMainCmd(CommandSender sender, String[] args){
@@ -80,6 +84,16 @@ public class CbManager {
                 PlayerData playerData = dataRepo.getPlayerData(player);
                 house.setPlayerData(playerData);
 
+                puller.updateHomeBrainrots(house);
+
+                Location forHologramLoc = house.isRight() ? house.getPlateCloseDoor().clone().add(0, 9, 25) : house.getPlateCloseDoor().clone().add(0, 9, -25);
+
+                Hologram hologram = createHologram(forHologramLoc, lobby + "_" + house.getId() + "_owner");
+                DHAPI.addHologramLine(hologram, "Дом игрока: &9" + player.getName());
+
+                Hologram holoPlate = createHologram(house.getPlateCloseDoor().clone().add(0, 1, 0), lobby + "_" + house.getId() + "_plate");
+                DHAPI.addHologramLine(holoPlate, "Дверь &aоткрыта");
+
                 player.sendMessage(parse("<prefix>Вы <green>взяли <white>дом!"));
                 player.teleport(house.isRight() ? house.getPlateCloseDoor().clone().add(0, 0, 1) : house.getPlateCloseDoor().clone().add(0, 0, -1));
             }
@@ -125,11 +139,11 @@ public class CbManager {
 
                 house.setPlayerData(null);
 
+                deleteHologram(lobby, house, "owner");
+                deleteHologram(lobby, house, "plate");
+
                 player.sendMessage(parse("<prefix>Вы <green>покинули <white>дом!"));
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:tp " + player.getName() + " 581 42 -634 0 0");
-            }
-            case "brainrotuse" -> {
-
             }
         }
     }

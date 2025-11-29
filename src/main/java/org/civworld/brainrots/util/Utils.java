@@ -1,7 +1,12 @@
 package org.civworld.brainrots.util;
 
+import eu.decentsoftware.holograms.api.DHAPI;
+import eu.decentsoftware.holograms.api.holograms.Hologram;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Location;
+import org.civworld.brainrots.model.House;
+import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.type.Modificator;
 import org.civworld.brainrots.type.Rarity;
 
@@ -83,5 +88,14 @@ public final class Utils {
             case YIN_YANG -> "&7";
             case RADIOACTIVE -> "&2";
         };
+    }
+
+    public static void deleteHologram(Lobby lobby, House house, String need){
+        DHAPI.removeHologram(lobby.getNum() + "_" + house.getId() + "_" + need);
+    }
+
+    public static Hologram createHologram(Location loc, String name){
+        if(DHAPI.getHologram(name) != null) DHAPI.removeHologram(name);
+        return DHAPI.createHologram(name, loc, false);
     }
 }

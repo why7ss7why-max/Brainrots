@@ -10,6 +10,7 @@ import org.civworld.brainrots.data.PlayerData;
     private PlayerData playerData = null;
     private final int id;
     private final boolean right;
+    private boolean closed = false;
 
     public House(Location plateCloseDoor, int id, boolean right){
         this.plateCloseDoor = plateCloseDoor;

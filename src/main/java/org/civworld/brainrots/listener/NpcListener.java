@@ -52,18 +52,18 @@ public class NpcListener implements Listener {
     }
 
     @EventHandler
-    public void onClick(NPCRightClickEvent event){
+    public void onClick(NPCRightClickEvent event) {
         Player clicker = event.getClicker();
         NPC npc = event.getNPC();
 
         House house = null;
         PlayerData playerData = null;
-        // ищем дом конкретного кликающего игрока в доступных лобби
-        for(Lobby l : lobbyRepo.getLobbies()){
-            for(House h : l.getHouses()){
+
+        for (Lobby l : lobbyRepo.getLobbies()) {
+            for (House h : l.getHouses()) {
                 PlayerData pd = h.getPlayerData();
-                if(pd == null) continue;
-                if (pd.getPlayer().equals(clicker)){
+                if (pd == null) continue;
+                if (pd.getPlayer().equals(clicker)) {
                     playerData = pd;
                     house = h;
                     break;
@@ -72,32 +72,34 @@ public class NpcListener implements Listener {
             if (house != null) break;
         }
 
-        if(playerData == null){
+        if (playerData == null) {
             clicker.sendMessage(parse("<prefix>Вы <red>не состоите<white> в <blue>лобби<white>!"));
             return;
         }
 
         Pair<BrainrotModel, Modificator> pair = puller.getWalkingNpc().getOrDefault(npc, null);
-        if(pair == null) return;
+        if (pair == null) return;
 
         BrainrotModel brainrotModel = pair.getKey();
-        if(brainrotModel == null) return;
+        if (brainrotModel == null) return;
 
         Modificator modificator = pair.getValue();
         double cost = modificator == Modificator.BRONZE ? brainrotModel.getCost() : brainrotModel.getCost() * modificator.getValue();
         String costFormatted = formatDouble(cost);
 
-        if(economy.getBalance(clicker) < cost){
+        if (economy.getBalance(clicker) < cost) {
             clicker.sendMessage(parse("<prefix>Недостаточно <red>монет<white>!"));
             return;
         }
+
+        if(puller.isNpcGoingToHouse(npc, house.getId())) return;
 
         clicker.sendMessage(parse("<prefix>Вам <green>хватает <white>монет: <blue>" + costFormatted));
 
         long now = System.currentTimeMillis();
         Long last = npcSoundCooldowns.get(npc);
 
-        if(last == null || now - last >= SOUND_COOLDOWN){
+        if (last == null || now - last >= SOUND_COOLDOWN) {
             for (Player p : npc.getEntity().getWorld().getPlayers()) {
                 if (p.getLocation().distance(npc.getStoredLocation()) <= 16) {
                     p.playSound(
@@ -116,8 +118,7 @@ public class NpcListener implements Listener {
         economy.withdrawPlayer(clicker, cost);
         clicker.sendMessage(parse("<prefix>С вас <gold>" + costFormatted + "<white> монет <green>списано<white>!"));
         clicker.sendMessage(parse("<prefix>Нпс идёт по координатам " + newLoc.getX() + " " + newLoc.getY() + " " + newLoc.getZ()));
-        // плавное перемещение NPC небольшими шагами (значение шага можно регулировать)
-        puller.moveNpcSmooth(npc, newLoc, 1.0);
+        puller.moveNpcSegmented(npc, brainrotModel, modificator, newLoc, house.getId(), clicker);
     }
 
     public static String formatDouble(double value) {

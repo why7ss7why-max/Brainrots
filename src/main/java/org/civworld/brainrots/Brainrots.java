@@ -1,14 +1,22 @@
 package org.civworld.brainrots;
 
+import eu.decentsoftware.holograms.api.DHAPI;
+import eu.decentsoftware.holograms.api.holograms.Hologram;
 import org.bukkit.Bukkit;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.civworld.brainrots.command.BrainrotCommand;
 import org.civworld.brainrots.config.Config;
 import org.civworld.brainrots.data.DataRepo;
 import org.civworld.brainrots.listener.NpcListener;
+import org.civworld.brainrots.listener.PlateListener;
+import org.civworld.brainrots.listener.PlayerListener;
 import org.civworld.brainrots.manager.BrainrotManager;
 import org.civworld.brainrots.manager.CbManager;
+import org.civworld.brainrots.model.House;
+import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.placeholder.LobbyPlaceholder;
 import org.civworld.brainrots.puller.Puller;
 import org.civworld.brainrots.repo.BrainrotRepo;
@@ -19,6 +27,8 @@ import org.civworld.brainrots.tabcompleter.BrainrotTabCompleter;
 public final class Brainrots extends JavaPlugin {
     private Puller puller = null;
     private Config config = null;
+    private Plugin plugin;
+    private LobbyRepo lobbyRepo = null;
     private static Economy econ = null;
 
     @Override
@@ -29,8 +39,10 @@ public final class Brainrots extends JavaPlugin {
             return;
         }
 
+        plugin = this;
+
         BrainrotRepo brainrotRepo = new BrainrotRepo();
-        LobbyRepo lobbyRepo = new LobbyRepo();
+        lobbyRepo = new LobbyRepo();
         DataRepo dataRepo = new DataRepo();
 
         config = new Config(this, brainrotRepo, lobbyRepo, dataRepo);
@@ -40,7 +52,7 @@ public final class Brainrots extends JavaPlugin {
         puller.startPull();
 
         BrainrotManager brainrotManager = new BrainrotManager(brainrotRepo, lobbyRepo, puller);
-        CbManager cbManager = new CbManager(lobbyRepo, dataRepo);
+        CbManager cbManager = new CbManager(lobbyRepo, dataRepo, puller);
 
         var command = getCommand("brainrot");
         if(command == null){
@@ -66,9 +78,15 @@ public final class Brainrots extends JavaPlugin {
             return;
         }
 
-        Bukkit.getPluginManager().registerEvents(new NpcListener(econ, puller, lobbyRepo), this);
+        registerEvents(new NpcListener(econ, puller, lobbyRepo));
+        registerEvents(new PlateListener(lobbyRepo, this));
+        registerEvents(new PlayerListener(lobbyRepo, config));
 
         log("Plugin successfully enabled!");
+    }
+
+    private void registerEvents(Listener listener){
+        Bukkit.getPluginManager().registerEvents(listener, plugin);
     }
 
     private boolean setupEconomy() {
@@ -91,6 +109,24 @@ public final class Brainrots extends JavaPlugin {
 
         if(config == null) getLogger().warning("Config не загружен! Не удалось сохранить конфиг.");
         else config.saveConfigData();
+
+        if(lobbyRepo != null){
+            for(Lobby lobby : lobbyRepo.getLobbies()){
+                for(House house : lobby.getHouses()){
+                    Hologram hologram = DHAPI.getHologram(lobby.getNum() + "_" + house.getId() + "_owner");
+                    if(hologram != null){
+                        hologram.delete();
+                        hologram.destroy();
+                    }
+
+                    Hologram holoPlate = DHAPI.getHologram(lobby.getNum() + "_" + house.getId() + "_plate");
+                    if(holoPlate != null){
+                        holoPlate.destroy();
+                        holoPlate.delete();
+                    }
+                }
+            }
+        }
     }
 
     private void log(String text){

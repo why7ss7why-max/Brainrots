@@ -12,9 +12,14 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.civworld.brainrots.Brainrots;
+import org.civworld.brainrots.data.PlayerData;
 import org.civworld.brainrots.model.BrainrotModel;
+import org.civworld.brainrots.model.House;
 import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.repo.BrainrotRepo;
 import org.civworld.brainrots.repo.LobbyRepo;
@@ -42,6 +47,8 @@ public class Puller {
     private final Map<NPC, BukkitRunnable> movementTasks = new ConcurrentHashMap<>();
     private final Map<NPC, Double> movementLastDist = new ConcurrentHashMap<>();
     private final Map<NPC, Integer> movementStuck = new ConcurrentHashMap<>();
+
+    private final Map<NPC, Integer> npcTargetHouse = new ConcurrentHashMap<>();
 
     private volatile List<BrainrotModel> cachedList = Collections.emptyList();
     private volatile Map<Rarity, List<BrainrotModel>> cachedByRarity = Collections.emptyMap();
@@ -199,11 +206,139 @@ public class Puller {
             }
 
             walkingNpc.put(npc, new MutablePair<>(model, model.getModificator()));
+            npc.getNavigator().getLocalParameters().pathDistanceMargin(3.0F);
+            npc.getNavigator().getLocalParameters().stationaryTicks(40);
+            npc.getNavigator().getLocalParameters().avoidWater(false);
+            npc.getNavigator().getLocalParameters().range(200);
+            npc.getNavigator().getLocalParameters().updatePathRate(40);
             npc.getNavigator().setTarget(end);
 
         } catch (Exception e) {
             plugin.getLogger().warning("Не удалось создать NPC: " + e.getMessage());
         }
+    }
+
+    public void onNpcArrived(NPC npc, BrainrotModel brainrot, Modificator modificator, int houseId, Player player) {
+        if(!player.isOnline()) return;
+
+        House house = null;
+        for(Lobby l : lobbyRepo.getLobbies()){
+            for(House h : l.getHouses()){
+                if(h.getPlayerData() == null) continue;
+                if(h.getPlayerData().getPlayer().equals(player)){
+                    house = h;
+                }
+                break;
+            }
+            if(house != null) break;
+        }
+        if(house == null) return;
+
+        house.getPlayerData().getOwnBreinrots().add(new MutablePair<>(brainrot, modificator));
+        updateHomeBrainrots(house);
+
+        Bukkit.broadcast(parse("NPC дошёл до дома " + houseId));
+    }
+
+    private void clearOldNPCs() {
+        for (NPC npc : new ArrayList<>(walkingNpc.keySet())) {
+            deleteNPC(npc);
+        }
+        walkingNpc.clear();
+        movementTasks.clear();
+        movementLastDist.clear();
+        movementStuck.clear();
+        npcTargetHouse.clear();
+    }
+
+    public void updateHomeBrainrots(House house){
+        if(house.getPlayerData() == null) return;
+
+        PlayerData playerData = house.getPlayerData();
+        if(playerData.getPlayer() == null) return;
+        if(playerData.getOwnBreinrots().isEmpty()) return;
+
+        // Удаляем старые NPC для этого дома
+        List<NPC> toRemove = walkingNpc.keySet().stream()
+                .filter(npc -> npc.data().has("home") && npc.data().get("home").equals(house.getPlayerData().getPlayer().getUniqueId()))
+                .collect(Collectors.toList());
+        toRemove.forEach(this::deleteNPC);
+
+        List<MutablePair<BrainrotModel, Modificator>> owning = playerData.getOwnBreinrots();
+
+        for(int i = 0; i < owning.size() && i < 10; i++){
+            MutablePair<BrainrotModel, Modificator> p = owning.get(i);
+            if (p == null) continue;
+
+            BrainrotModel brainrot = p.getLeft();
+            Modificator mod = p.getRight();
+
+            Location loc = getLocationByIdBrainrot(i, house.getPlateCloseDoor(), house.isRight());
+
+            String uuid = UUID.randomUUID().toString();
+            NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, uuid);
+            npc.setName("");
+            npc.spawn(loc);
+
+            npc.data().set("home", playerData.getPlayer().getUniqueId());
+
+            npc.setUseMinecraftAI(false);
+            LookClose look = npc.getOrAddTrait(LookClose.class);
+            look.lookClose(false);
+
+            List<String> cmds = new ArrayList<>();
+            cmds.add("npc select " + npc.getId());
+            cmds.add("trait add meg_model");
+            cmds.add("meg npc model citizens:" + npc.getId() + ":[" + uuid + "] add " + brainrot.getId().toLowerCase());
+
+            cmds.add("npc hologram lineheight 0.25");
+            cmds.add("npc hitbox --width " + brainrot.getWidthHitbox() + " --height " + brainrot.getHeightHitbox());
+            if(mod == Modificator.BRONZE) cmds.add("npc hologram add &a$" + formatNumber(brainrot.getCost()));
+            else cmds.add("npc hologram add &a$" + formatNumber(brainrot.getCost() * mod.getValue()));
+            if(mod == Modificator.BRONZE) cmds.add("npc hologram add &e$" + formatNumber(brainrot.getEarn()) + "/с");
+            else cmds.add("npc hologram add &e$" + formatNumber(brainrot.getEarn() * mod.getValue()) + "/с");
+            cmds.add("npc hologram marginbottom 0 " + brainrot.getMarginHologram());
+
+            if (brainrot.getRarity().equals(Rarity.BRAINROT_GOD)) {
+                cmds.add("npc hologram add &#FF0000B&#FF4000r&#FF7F00a&#FFBF00i&#FFFF00n&#80FF00r&#00FF00o&#0000FFt &#4A00E9G&#6F00DEo&#9400D3d");
+            } else {
+                cmds.add("npc hologram add &f" + colorFromRarity(brainrot.getRarity()) + capitalizeFirst(brainrot.getRarity().toString()));
+            }
+            cmds.add("npc hologram add &f" + capitalizeFirst(brainrot.getDisplayName()));
+
+            if(mod != Modificator.BRONZE) {
+                if(mod == Modificator.RAINBOW){
+                    cmds.add("npc hologram add &#FF0000R&#FF7F00a&#FFFF00i&#80FF00n&#00FF00b&#0000FFo&#4B0082w");
+                } else if(mod == Modificator.YIN_YANG){
+                    cmds.add("npc hologram add &#FFFFFFY&#ECECECi&#D8D8D8n&#C5C5C5g &#9E9E9EY&#8B8B8Ba&#777777n&#646464g");
+                } else {
+                    if(mod == Modificator.GALAXY) cmds.add("npc glowing");
+                    cmds.add("npc hologram add &f" + colorFromModificator(mod) + capitalizeFirst(mod + ""));
+                }
+            }
+
+            for (String c : cmds) {
+                try { Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c); } catch (Exception e) { plugin.getLogger().warning("Ошибка при выполнении команды NPC: " + e.getMessage()); }
+            }
+
+            walkingNpc.put(npc, new MutablePair<>(brainrot, mod));
+        }
+    }
+
+    public Location getLocationByIdBrainrot(int num, Location loc, boolean isRight){
+        return switch(num){
+            case 0 -> isRight ? loc.clone().add(6, 1, 19) : loc.clone().add(6, 1, -19);
+            case 1 -> isRight ? loc.clone().add(6, 1, 15) : loc.clone().add(6, 1, -15);
+            case 2 -> isRight ? loc.clone().add(6, 1, 11) : loc.clone().add(6, 1, -11);
+            case 3 -> isRight ? loc.clone().add(6, 1, 7) : loc.clone().add(6, 1, -7);
+            case 4 -> isRight ? loc.clone().add(6, 1, 3) : loc.clone().add(6, 1, -3);
+            case 5 -> isRight ? loc.clone().add(-6, 1, 3) : loc.clone().add(-6, 1, -3);
+            case 6 -> isRight ? loc.clone().add(-6, 1, 7) : loc.clone().add(-6, 1, -7);
+            case 7 -> isRight ? loc.clone().add(-6, 1, 11) : loc.clone().add(-6, 1, -11);
+            case 8 -> isRight ? loc.clone().add(-6, 1, 15) : loc.clone().add(-6, 1, -15);
+            case 9 -> isRight ? loc.clone().add(-6, 1, 19) : loc.clone().add(-6, 1, -19);
+            default -> null;
+        };
     }
 
     private void deleteNPC(NPC npc) {
@@ -222,177 +357,90 @@ public class Puller {
         walkingNpc.remove(npc);
     }
 
-    private void clearMovementState(NPC npc){
-        if (npc == null) return;
-        movementTasks.remove(npc);
-        movementLastDist.remove(npc);
-        movementStuck.remove(npc);
+    public boolean isNpcGoingToHouse(NPC npc, int houseId) {
+        return npcTargetHouse.getOrDefault(npc, -1) == houseId;
     }
 
-    public void moveNpcSmooth(NPC npc, Location end, double step) {
-        if (npc == null || end == null) return;
-        try {
-            if (!npc.isSpawned()) return;
+    public void moveNpcSegmented(NPC npc, BrainrotModel brainrot, Modificator modificator, Location finalEnd, int houseId, Player player) {
+        if (npc == null || !npc.isSpawned()) return;
+        npcTargetHouse.put(npc, houseId);
 
-            // cancel previous movement for this npc
-            BukkitRunnable prev = movementTasks.remove(npc);
-            if (prev != null) prev.cancel();
-            // сбрасываем состояние застревания при старте нового перемещения
-            movementLastDist.remove(npc);
-            movementStuck.put(npc, 0);
+        double segment = 10;      // длина каждого рывка
+        double advance = 7;       // после скольких блоков обновлять цель
 
-            // ensure navigator parameters are reasonable for smooth movement
-            // используем навигатор Citizens (Minecraft AI отключён) — часто стабильнее для NPC-путей
-            try { npc.setUseMinecraftAI(false); } catch (Throwable ignored) {}
-            npc.getNavigator().getLocalParameters()
-                    .speedModifier(0.9f)
-                    .distanceMargin(0.45)
-                    .useNewPathfinder(true)
-                    .stuckAction(null);
+        Location current = npc.getStoredLocation();
+        if (current == null) return;
 
-            World world = end.getWorld();
-            double stepDistance = Math.max(0.5, step); // немного больше по умолчанию
+        Location next = pointTowards(current, finalEnd, segment);
+        npc.getNavigator().setTarget(next);
 
-            plugin.getLogger().info("[Brainrots] NPC " + npc.getId() + " moveNpcSmooth start -> target=" + end.getBlockX() + "," + end.getBlockY() + "," + end.getBlockZ());
-            // даём навигатору сразу полную цель, он попытается пройти путь сам
-            try { npc.getNavigator().setTarget(end); } catch (Throwable ignored) {}
+        BukkitRunnable task = new BukkitRunnable() {
+            Location lastPoint = next;
 
-            // задача мониторинга прогресса: запускается каждые 4 тика
-            BukkitRunnable task = new BukkitRunnable() {
-                int checks = 0;
-
-                @Override
-                public void run() {
-                    try {
-                        if (!npc.isSpawned()) {
-                            this.cancel();
-                            movementTasks.remove(npc);
-                            return;
-                        }
-
-                        Location cur = npc.getStoredLocation();
-                        if (cur == null && npc.getEntity() != null) cur = npc.getEntity().getLocation();
-                        if (cur == null) {
-                            this.cancel();
-                            movementTasks.remove(npc);
-                            return;
-                        }
-
-                        if (!cur.getWorld().equals(world)) {
-                            this.cancel();
-                            movementTasks.remove(npc);
-                            return;
-                        }
-
-                        double dx = end.getX() - cur.getX();
-                        double dy = end.getY() - cur.getY();
-                        double dz = end.getZ() - cur.getZ();
-                        double dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-
-                        // если близко к цели — завершаем
-                        if (dist <= Math.max(0.7, stepDistance)) {
-                            try { npc.getNavigator().setTarget(end); } catch (Throwable ignored) {}
-                            this.cancel();
-                            movementTasks.remove(npc);
-                            movementLastDist.remove(npc);
-                            movementStuck.remove(npc);
-                            return;
-                        }
-
-                        // детектируем застой: проверяем каждые 3 проверок для сглаживания
-                        Double prev = movementLastDist.get(npc);
-                        if (prev == null) {
-                            movementLastDist.put(npc, dist);
-                        } else {
-                            double delta = prev - dist;
-                            if (delta < 0.02) {
-                                movementStuck.put(npc, movementStuck.getOrDefault(npc, 0) + 1);
-                            } else {
-                                movementStuck.put(npc, 0);
-                            }
-                            movementLastDist.put(npc, dist);
-                        }
-
-                        checks++;
-                        int stuck = movementStuck.getOrDefault(npc, 0);
-                        if (checks % 8 == 0) {
-                            // периодическая отладочная информация
-                            plugin.getLogger().info("[Brainrots] NPC " + npc.getId() + " pos=" + cur.getBlockX() + "," + cur.getBlockY() + "," + cur.getBlockZ() + " dist=" + String.format("%.2f", dist) + " navigating=" + npc.getNavigator().isNavigating());
-                        }
-                        if (stuck > 60 && checks % 4 == 0) {
-                             // терпеливая попытка: ставим промежуточную цель дальше по линии к конечной
-                             double forward = Math.min(5.0, stepDistance * 4);
-                             double factor = Math.min(forward / dist, 0.9);
-                             // не ставим промежуточную цель, если она слишком близка
-                             if (factor * dist < 1.0) {
-                                 // слишком малое смещение, пропускаем
-                             } else {
-                              double ix = cur.getX() + dx * factor;
-                              double iy = cur.getY() + dy * factor;
-                              double iz = cur.getZ() + dz * factor;
-                              Location intermediate = new Location(world, ix, iy, iz);
-                              try {
-                                  // временно ставим промежуточную цель
-                                 npc.getNavigator().setTarget(intermediate);
-                                 plugin.getLogger().info("[Brainrots] NPC " + npc.getId() + " setting intermediate target -> "+ intermediate.getBlockX()+","+intermediate.getBlockY()+","+intermediate.getBlockZ());
-                              } catch (Throwable ignored) {}
-                             }
-                         } else if (checks % 8 == 0) {
-                             // периодически убеждаемся, что финальная цель установлена
-                             try { npc.getNavigator().setTarget(end); } catch (Throwable ignored) {}
-                         }
-                        // если длительно застрял — переключаемся в режим постепенной телепортации по направлению
-                        if (stuck > 120) {
-                            plugin.getLogger().warning("[Brainrots] NPC " + npc.getId() + " switching to teleport fallback due to stuck=" + stuck);
-                            // отменяем текущую мониторзадачу
-                            this.cancel();
-                            movementTasks.remove(npc);
-
-                            // запускаем задачу постепенной телепортации
-                            double teleportStep = Math.max(0.25, stepDistance / 2.0);
-                            BukkitRunnable teleportTask = new BukkitRunnable() {
-                                @Override
-                                public void run() {
-                                    try {
-                                        if (!npc.isSpawned()) { this.cancel(); movementTasks.remove(npc); return; }
-                                        Location cur2 = npc.getStoredLocation();
-                                        if (cur2 == null && npc.getEntity() != null) cur2 = npc.getEntity().getLocation();
-                                        if (cur2 == null) { this.cancel(); movementTasks.remove(npc); return; }
-                                        double dx2 = end.getX() - cur2.getX();
-                                        double dy2 = end.getY() - cur2.getY();
-                                        double dz2 = end.getZ() - cur2.getZ();
-                                        double dist2 = Math.sqrt(dx2*dx2 + dy2*dy2 + dz2*dz2);
-                                        if (dist2 <= 0.7) { try{ npc.getNavigator().setTarget(end);}catch(Throwable ignored){} this.cancel(); movementTasks.remove(npc); movementLastDist.remove(npc); movementStuck.remove(npc); return; }
-                                        double ratio2 = teleportStep / dist2;
-                                        double nx2 = cur2.getX() + dx2 * ratio2;
-                                        double ny2 = cur2.getY() + dy2 * ratio2;
-                                        double nz2 = cur2.getZ() + dz2 * ratio2;
-                                        if (npc.getEntity() != null) {
-                                            npc.getEntity().teleport(new Location(cur2.getWorld(), nx2, ny2, nz2, cur2.getYaw(), cur2.getPitch()));
-                                        }
-                                    } catch (Throwable e) {
-                                        this.cancel(); movementTasks.remove(npc);
-                                    }
-                                }
-                            };
-                            movementTasks.put(npc, teleportTask);
-                            teleportTask.runTaskTimer(plugin, 0L, 1L);
-                            return;
-                        }
-
-                    } catch (Throwable t) {
-                        this.cancel();
+            @Override
+            public void run() {
+                try {
+                    if (!npc.isSpawned()) {
+                        cancel();
                         movementTasks.remove(npc);
+                        return;
                     }
+
+                    Location cur = npc.getStoredLocation();
+                    if (cur == null) return;
+
+                    if (cur.getWorld() == null || !cur.getWorld().equals(finalEnd.getWorld())) {
+                        return;
+                    }
+
+                    double distToFinal = cur.distance(finalEnd);
+                    if (distToFinal < 3.5) {
+                        if(!walkingNpc.containsKey(npc)) return;
+                        int hid = npcTargetHouse.getOrDefault(npc, houseId);
+
+                        movementTasks.remove(npc);
+                        walkingNpc.remove(npc);
+                        npcTargetHouse.remove(npc);
+                        movementLastDist.remove(npc);
+                        movementStuck.remove(npc);
+
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            try {
+                                if (npc.isSpawned()) npc.despawn(DespawnReason.REMOVAL);
+                                CitizensAPI.getNPCRegistry().deregister(npc);
+                                npc.destroy();
+                            } catch (Throwable ignored) {}
+                            onNpcArrived(npc, brainrot, modificator, hid, player);
+                        });
+
+                        cancel();
+                        return;
+                    }
+
+                    double distToLast = cur.distance(lastPoint);
+
+                    if (distToLast <= (segment - advance)) {
+                        Location newPoint = pointTowards(cur, finalEnd, segment);
+                        lastPoint = newPoint;
+                        npc.getNavigator().setTarget(newPoint);
+                    }
+                } catch (Throwable t) {
+                    plugin.getLogger().warning("Ошибка в задаче перемещения NPC: " + t.getMessage());
+                    try { cancel(); } catch (Throwable ignored) {}
+                    movementTasks.remove(npc);
                 }
-            };
+            }
+        };
+        movementTasks.put(npc, task);
+        task.runTaskTimer(plugin, 0, 4);
+    }
 
-            movementTasks.put(npc, task);
-            // run every 4 ticks
-            task.runTaskTimer(plugin, 0L, 4L);
-
-         } catch (Throwable ignored) {}
-     }
+    private Location pointTowards(Location from, Location to, double d) {
+        Vector v = to.toVector().subtract(from.toVector());
+        if (v.length() < d) return to.clone();
+        v.normalize().multiply(d);
+        return from.clone().add(v);
+    }
 
     private void refreshCacheIfNeeded() {
         long now = System.currentTimeMillis();
