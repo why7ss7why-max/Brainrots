@@ -240,17 +240,6 @@ public class Puller {
         Bukkit.broadcast(parse("NPC дошёл до дома " + houseId));
     }
 
-    private void clearOldNPCs() {
-        for (NPC npc : new ArrayList<>(walkingNpc.keySet())) {
-            deleteNPC(npc);
-        }
-        walkingNpc.clear();
-        movementTasks.clear();
-        movementLastDist.clear();
-        movementStuck.clear();
-        npcTargetHouse.clear();
-    }
-
     public void updateHomeBrainrots(House house){
         if(house.getPlayerData() == null) return;
 
@@ -258,10 +247,9 @@ public class Puller {
         if(playerData.getPlayer() == null) return;
         if(playerData.getOwnBreinrots().isEmpty()) return;
 
-        // Удаляем старые NPC для этого дома
         List<NPC> toRemove = walkingNpc.keySet().stream()
                 .filter(npc -> npc.data().has("home") && npc.data().get("home").equals(house.getPlayerData().getPlayer().getUniqueId()))
-                .collect(Collectors.toList());
+                .toList();
         toRemove.forEach(this::deleteNPC);
 
         List<MutablePair<BrainrotModel, Modificator>> owning = playerData.getOwnBreinrots();
