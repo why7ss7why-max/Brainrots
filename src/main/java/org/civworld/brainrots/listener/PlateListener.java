@@ -21,6 +21,7 @@ import org.civworld.brainrots.model.House;
 import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.repo.LobbyRepo;
 
+import static org.civworld.brainrots.listener.NpcListener.formatDouble;
 import static org.civworld.brainrots.util.Utils.createHologram;
 import static org.civworld.brainrots.util.Utils.parse;
 
@@ -98,7 +99,8 @@ public class PlateListener implements Listener {
                 }
 
                 player.teleport(safe);
-                player.sendMessage(parse("<prefix>Эта дверь <red>закрыта<white>!"));
+
+                player.sendActionBar(parse("<white>Эта дверь <red>закрыта<white>!"));
                 player.spawnParticle(Particle.CLOUD, player.getLocation(), 20, 0.3, 0.5, 0.3, 0.05);
 
                 event.setCancelled(true);
@@ -186,11 +188,17 @@ public class PlateListener implements Listener {
             }
         }.runTaskTimer(plugin, 20L, 20L);
 
+
+
         new BukkitRunnable() {
             int tick = 0;
 
             @Override
             public void run() {
+                if(!finalHouse.isClosed()) {
+                    cancel();
+                    return;
+                }
                 tick++;
                 double progress = (tick % 20) / 20.0;
 

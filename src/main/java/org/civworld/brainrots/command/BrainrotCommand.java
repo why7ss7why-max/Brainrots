@@ -30,13 +30,22 @@ public class BrainrotCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if(!sender.hasPermission("brainrots.admin")){
-            sender.sendMessage(parse("<prefix>Вы <red>не администратор<white>."));
+        if(args.length < 1){
+            helpMessage(sender);
             return true;
         }
 
-        if(args.length < 1){
-            helpMessage(sender);
+        if (args[0].equalsIgnoreCase("confirmremove")) {
+            brainrotManager.confirmRemove(sender, args);
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("autosell")) {
+            cbManager.toggleAutoSell(sender);
+            return true;
+        }
+
+        if(!sender.hasPermission("brainrots.admin")){
+            sender.sendMessage(parse("<prefix>Вы <red>не администратор<white>."));
             return true;
         }
 

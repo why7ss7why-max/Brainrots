@@ -9,16 +9,19 @@ import org.civworld.brainrots.config.Config;
 import org.civworld.brainrots.model.House;
 import org.civworld.brainrots.model.Lobby;
 import org.civworld.brainrots.repo.LobbyRepo;
+import org.civworld.brainrots.puller.Puller;
 
 import static org.civworld.brainrots.util.Utils.deleteHologram;
 
 public class PlayerListener implements Listener {
     private final LobbyRepo lobbyRepo;
     private final Config config;
+    private final Puller puller;
 
-    public PlayerListener(LobbyRepo lobbyRepo, Config config){
+    public PlayerListener(LobbyRepo lobbyRepo, Config config, Puller puller){
         this.lobbyRepo = lobbyRepo;
         this.config = config;
+        this.puller = puller;
     }
 
     @EventHandler
@@ -29,6 +32,10 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onLeave(PlayerQuitEvent event){
         Player player = event.getPlayer();
+
+        // Удаляем домовых NPC игрока
+        try { puller.removeHomeNpcs(player.getName()); } catch (Throwable ignored) {}
+
         for(Lobby lobby : lobbyRepo.getLobbies()){
             for(House house : lobby.getHouses()){
                 if(house.getPlayerData() != null && house.getPlayerData().getPlayer() != null
@@ -36,6 +43,10 @@ public class PlayerListener implements Listener {
                     house.setPlayerData(null);
                     deleteHologram(lobby, house, "owner");
                     deleteHologram(lobby, house, "plate");
+                    // удалить голограммы слотов
+                    for (int i = 0; i < 10; i++) {
+                        try { deleteHologram(lobby, house, "slot_" + i); } catch (Throwable ignored) {}
+                    }
                 }
             }
         }

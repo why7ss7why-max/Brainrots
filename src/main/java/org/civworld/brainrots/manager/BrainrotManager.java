@@ -6,6 +6,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.civworld.brainrots.Brainrots;
+import org.civworld.brainrots.data.PlayerData;
 import org.civworld.brainrots.model.BrainrotModel;
 import org.civworld.brainrots.model.House;
 import org.civworld.brainrots.model.Lobby;
@@ -548,5 +550,64 @@ public class BrainrotManager {
         sender.sendMessage(parse("<prefix><blue>/bt lobby create <айди> <gray>- <white>Создать <gray>новое <blue>лобби"));
         sender.sendMessage(parse("<prefix><blue>/bt lobby delete <айди> <gray>- <white>Удалить <red>лобби"));
         sender.sendMessage(parse("<prefix><blue>/bt lobby list <gray>- <white>Список <yellow>лобби"));
+    }
+
+    public void confirmRemove(CommandSender sender, String[] args){
+        if(!(sender instanceof Player player)){
+            sender.sendMessage(parse("<prefix>Команду можно использовать только игроку."));
+            return;
+        }
+
+        if(args.length < 2){
+            player.sendMessage(parse("<prefix>Использование: <blue>/brainrot confirmremove <слот>"));
+            return;
+        }
+
+        int slot;
+        try{
+            slot = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e){
+            player.sendMessage(parse("<prefix>Вы ввели <red>неверный <white>номер слота!"));
+            return;
+        }
+
+        House house = null;
+        PlayerData pd = null;
+        for(Lobby l : lobbyRepo.getLobbies()){
+            for(House h : l.getHouses()){
+                if(h.getPlayerData() == null) continue;
+                if(h.getPlayerData().getPlayer().equals(player)){
+                    house = h;
+                    pd = h.getPlayerData();
+                    break;
+                }
+            }
+            if(house != null) break;
+        }
+
+        if(house == null || pd == null){
+            player.sendMessage(parse("<prefix>Вы <red>не состоите<white> в <blue>лобби<white>!"));
+            return;
+        }
+
+        if(slot < 0 || slot >= pd.getOwnBreinrots().size() || pd.getOwnBreinrots().get(slot) == null || pd.getOwnBreinrots().get(slot).getLeft() == null){
+            player.sendMessage(parse("<prefix>В этом слоте нет бреинрота."));
+            return;
+        }
+
+        BrainrotModel model = pd.getOwnBreinrots().get(slot).getLeft();
+        String display = model != null ? model.getDisplayName() : "<unknown>";
+
+        pd.removeBrainrot(slot);
+        try { puller.updateHomeBrainrots(house); } catch (Throwable ignored) {}
+
+        try {
+            var pl = Bukkit.getPluginManager().getPlugin("Brainrots");
+            if (pl instanceof Brainrots) {
+                ((Brainrots) pl).getConfigManager().savePlayerData(player);
+            }
+        } catch (Throwable ignored) {}
+
+        player.sendMessage(parse("<prefix>Вы <green>удалили<white> бреинрота: <yellow>" + display));
     }
 }

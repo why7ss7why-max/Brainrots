@@ -101,26 +101,45 @@ public final class Config {
 
         PlayerData playerData = new PlayerData(player);
 
+        // Load autoSell setting if present
+        boolean autoSell = config.getBoolean("autoSell", false);
+        playerData.setAutoSell(autoSell);
+
+        int loaded = 0;
         // Загружаем бреинроты (слоты 0–9)
         if (config.contains("ownBreinrots")) {
             for (String slotStr : config.getConfigurationSection("ownBreinrots").getKeys(false)) {
-                String base = "ownBreinrots." + slotStr + ".";
-                String id = config.getString(base + "id");
-                String modStr = config.getString(base + "mod", "BRONZE");
+                try {
+                    String base = "ownBreinrots." + slotStr + ".";
+                    String id = config.getString(base + "id");
+                    String modStr = config.getString(base + "mod", "BRONZE");
+                    double stored = config.getDouble(base + "stored", 0.0);
 
-                if (id == null) continue;
+                    if (id == null) continue;
 
-                BrainrotModel model = brainrotRepo.getById(id);
-                if (model == null) {
-                    plugin.getLogger().warning("Бреинрот с ID " + id + " не найден у игрока " + playerName);
-                    continue;
-                }
+                    BrainrotModel model = brainrotRepo.getById(id);
+                    if (model == null) {
+                        plugin.getLogger().warning("Бреинрот с ID '" + id + "' не найден у игрока " + playerName + " (слот " + slotStr + ")");
+                        continue;
+                    }
 
-                Modificator modificator = Modificator.valueOf(modStr.toUpperCase());
-                int slot = Integer.parseInt(slotStr);
+                    Modificator modificator;
+                    try{
+                        modificator = Modificator.valueOf(modStr.toUpperCase());
+                    } catch (Exception e) {
+                        modificator = Modificator.BRONZE;
+                        plugin.getLogger().warning("Неверный модификатор '" + modStr + "' у игрока " + playerName + " в слоте " + slotStr + ". Использован BRONZE.");
+                    }
+                    int slot = Integer.parseInt(slotStr);
 
-                if (slot >= 0 && slot < 10) {
-                    playerData.addBrainrot(slot, model, modificator);
+                    if (slot >= 0 && slot < 10) {
+                        playerData.addBrainrot(slot, model, modificator);
+                        // restore stored amount if present
+                        if (stored > 0.0) playerData.setStoredAmount(slot, stored);
+                        loaded++;
+                    }
+                } catch (Throwable t) {
+                    plugin.getLogger().warning("Ошибка при загрузке слота бреинрота для игрока " + playerName + ": " + t.getMessage());
                 }
             }
         }
@@ -129,7 +148,7 @@ public final class Config {
         dataRepo.addPlayerData(player, playerData);
         playerConfigs.put(playerName, config);
 
-        plugin.getLogger().info("Данные игрока " + playerName + " загружены.");
+        plugin.getLogger().info("Данные игрока " + playerName + " загружены. Слотов: " + loaded + ".");
     }
 
     public void savePlayerData(Player player) {
@@ -171,7 +190,13 @@ public final class Config {
             String base = "ownBreinrots." + i + ".";
             config.set(base + "id", model.getId());
             config.set(base + "mod", mod.name());
+            // save stored amount
+            double stored = playerData.getStoredAmount(i);
+            config.set(base + "stored", stored);
         }
+
+        // Save autoSell setting
+        config.set("autoSell", playerData.isAutoSell());
 
         config.set("lastSaved", System.currentTimeMillis());
 

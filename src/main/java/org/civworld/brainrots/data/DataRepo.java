@@ -17,6 +17,6 @@ public class DataRepo {
     }
 
     public PlayerData getPlayerData(Player player){
-        return playerDatas.getOrDefault(player, new PlayerData(player));
+        return playerDatas.computeIfAbsent(player, PlayerData::new);
     }
 }

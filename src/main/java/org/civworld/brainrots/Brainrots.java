@@ -2,6 +2,8 @@ package org.civworld.brainrots;
 
 import eu.decentsoftware.holograms.api.DHAPI;
 import eu.decentsoftware.holograms.api.holograms.Hologram;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.event.DespawnReason;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
@@ -31,6 +33,10 @@ public final class Brainrots extends JavaPlugin {
     private LobbyRepo lobbyRepo = null;
     private static Economy econ = null;
 
+    public Config getConfigManager(){
+        return this.config;
+    }
+
     @Override
     public void onEnable() {
         if (!setupEconomy() ) {
@@ -48,11 +54,11 @@ public final class Brainrots extends JavaPlugin {
         config = new Config(this, brainrotRepo, lobbyRepo, dataRepo);
         config.loadConfig();
 
-        puller = new Puller(this, brainrotRepo, lobbyRepo);
+        puller = new Puller(this, brainrotRepo, lobbyRepo, config);
         puller.startPull();
 
         BrainrotManager brainrotManager = new BrainrotManager(brainrotRepo, lobbyRepo, puller);
-        CbManager cbManager = new CbManager(lobbyRepo, dataRepo, puller);
+        CbManager cbManager = new CbManager(lobbyRepo, dataRepo, puller, config);
 
         var command = getCommand("brainrot");
         if(command == null){
@@ -78,9 +84,9 @@ public final class Brainrots extends JavaPlugin {
             return;
         }
 
-        registerEvents(new NpcListener(econ, puller, lobbyRepo));
+        registerEvents(new NpcListener(econ, puller, lobbyRepo, config));
         registerEvents(new PlateListener(lobbyRepo, this));
-        registerEvents(new PlayerListener(lobbyRepo, config));
+        registerEvents(new PlayerListener(lobbyRepo, config, puller));
 
         log("Plugin successfully enabled!");
     }
@@ -107,6 +113,20 @@ public final class Brainrots extends JavaPlugin {
         if(puller == null) getLogger().warning("Попытка остановить Puller, когда он не начат!");
         else puller.stopPull();
 
+        // Удаляем все домашних NPC, чтобы при перезагрузке не дублировались
+        try {
+            for (var npc : CitizensAPI.getNPCRegistry()) {
+                try {
+                    if (npc == null) continue;
+                    if (npc.data().has("home")) {
+                        try { if (npc.isSpawned()) npc.despawn(DespawnReason.REMOVAL); } catch (Throwable ignored) {}
+                        try { CitizensAPI.getNPCRegistry().deregister(npc); } catch (Throwable ignored) {}
+                        try { npc.destroy(); } catch (Throwable ignored) {}
+                    }
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
+
         if(config == null) getLogger().warning("Config не загружен! Не удалось сохранить конфиг.");
         else config.saveConfigData();
 
@@ -123,6 +143,16 @@ public final class Brainrots extends JavaPlugin {
                     if(holoPlate != null){
                         holoPlate.destroy();
                         holoPlate.delete();
+                    }
+
+                    for (int i = 0; i < 10; i++) {
+                        try {
+                            Hologram slotH = DHAPI.getHologram(lobby.getNum() + "_" + house.getId() + "_slot_" + i);
+                            if (slotH != null) {
+                                slotH.delete();
+                                slotH.destroy();
+                            }
+                        } catch (Throwable ignored) {}
                     }
                 }
             }
